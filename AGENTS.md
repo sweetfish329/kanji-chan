@@ -191,24 +191,24 @@ CREATE TABLE candidate_answers (
 
 ## 6. 実装フェーズおよびタスクリスト
 
-- [ ] **Phase 1: 環境構築とDocker構成**
-  - [ ] `docker-compose.yml` の作成 (PostgreSQL, Go, Svelte)
-  - [ ] Go バックエンドのプロジェクト初期化 (`go.mod`, `main.go`)
-  - [ ] Bun による Svelte 5 プロジェクトの初期化
-- [ ] **Phase 2: データベース構築とバックエンドの基礎設計**
-  - [ ] PostgreSQL接続とマイグレーションのセットアップ
-  - [ ] OAuth 2.0 (Google/GitHub) 認証ロジックの実装
-  - [ ] イベント、候補日、回答スキーマのモデル化とCRUD実装
-- [ ] **Phase 3: AI機能 (Gemini API) の実装**
-  - [ ] Gemini API クライアントの実装
-  - [ ] 自然文入力からイベント候補日時を抽出するプロンプトとパーサーの実装
-  - [ ] 全員の回答から最適日時を分析・推奨するロジックの実装
-- [ ] **Phase 4: フロントエンドの実装 (Svelte 5 Runes)**
-  - [ ] Svelte 5の `$state` / `$derived` / `$props` を用いた状態管理の設計
-  - [ ] 幹事ログイン画面、イベント作成（自然文入力アシスト）画面
-  - [ ] 回答画面（調整さん風の使いやすいテーブルUI、〇△×入力）
-  - [ ] 管理・結果集計画面（AI提案の表示、日程確定機能）
-  - [ ] Vanilla CSSによる洗練されたモダンUI (Glassmorphism, ダークモード)
-- [ ] **Phase 5: 統合テストと微調整**
-  - [ ] OAuthからイベント作成、回答、AI絞り込みまでの一連のフローテスト
-  - [ ] エラーハンドリングとセキュリティ対策 (APIキーの暗号化等)
+- [x] **Phase 1: 環境構築とDocker構成**
+  - [x] `docker-compose.yml` の作成 (PostgreSQL, Go, Svelte)
+  - [x] Go バックエンド of プロジェクト初期化 (`go.mod`, `main.go`)
+  - [x] Bun による Svelte 5 プロジェクトの初期化
+- [x] **Phase 2: データベース構築とバックエンドの基礎設計**
+  - [x] PostgreSQL接続とマイグレーションのセットアップ
+  - [x] OAuth 2.0 (Google/GitHub) 認証ロジックの実装
+  - [x] イベント、候補日、回答スキーマのモデル化とCRUD実装
+- [x] **Phase 3: AI機能 (Gemini API) の実装**
+  - [x] Gemini API クライアントの実装
+  - [x] 自然文入力からイベント候補日時を抽出するプロンプトとパーサーの実装
+  - [x] 全員の回答から最適日時を分析・推奨するロジックの実装
+- [x] **Phase 4: フロントエンドの実装 (Svelte 5 Runes)**
+  - [x] Svelte 5の `$state` / `$derived` / `$props` を用いた状態管理の設計
+  - [x] 幹事ログイン画面、イベント作成（自然文入力アシスト）画面
+  - [x] 回答画面（調整さん風の使いやすいテーブルUI、〇△×入力）
+  - [x] 管理・結果集計画面（AI提案の表示、日程確定機能）
+  - [x] Vanilla CSSによる洗練されたモダンUI (Glassmorphism, ダークモード)
+- [x] **Phase 5: 統合テストと微調整**
+  - [x] OAuthからイベント作成、回答、AI絞り込みまでの一連のフローテスト
+  - [x] エラーハンドリングとセキュリティ対策 (APIキーの暗号化等)
