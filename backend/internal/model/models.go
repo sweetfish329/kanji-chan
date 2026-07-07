@@ -1,0 +1,62 @@
+package model
+
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
+
+// User 幹事・管理者
+type User struct {
+	ID            uint       `gorm:"primaryKey" json:"id"`
+	OAuthProvider string     `gorm:"type:varchar(50);not null;uniqueIndex:idx_provider_id" json:"oauth_provider"`
+	OAuthID       string     `gorm:"type:varchar(255);not null;uniqueIndex:idx_provider_id" json:"oauth_id"`
+	Email         string     `gorm:"type:varchar(255);not null" json:"email"`
+	Name          string     `gorm:"type:varchar(255);not null" json:"name"`
+	GeminiAPIKey  string     `gorm:"type:varchar(255)" json:"gemini_api_key,omitempty"` // 暗号化して保存するか、まずは平文（デモ用）で
+	CreatedAt     time.Time  `json:"created_at"`
+	Events        []Event    `gorm:"foreignKey:CreatedBy" json:"events,omitempty"`
+}
+
+// Event 調整イベント
+type Event struct {
+	ID                   uuid.UUID        `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Title                string           `gorm:"type:varchar(255);not null" json:"title"`
+	Description          string           `gorm:"type:text" json:"description"`
+	CreatedBy            *uint            `json:"created_by,omitempty"`
+	Status               string           `gorm:"type:varchar(50);default:'scheduling'" json:"status"` // 'scheduling' or 'confirmed'
+	ConfirmedCandidateID *uint            `json:"confirmed_candidate_id,omitempty"`
+	CreatedAt            time.Time        `json:"created_at"`
+	
+	// リレーション
+	Candidates         []EventCandidate  `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"candidates"`
+	Responses          []Response        `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"responses,omitempty"`
+	ConfirmedCandidate *EventCandidate   `gorm:"foreignKey:ConfirmedCandidateID" json:"confirmed_candidate,omitempty"`
+}
+
+// EventCandidate イベントの候補日時
+type EventCandidate struct {
+	ID        uint      `gorm:"primaryKey" json:"id"`
+	EventID   uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
+	EventDate string    `gorm:"type:date;not null" json:"event_date"` // YYYY-MM-DD
+	StartTime string    `gorm:"type:time;not null" json:"start_time"` // HH:MM
+	EndTime   string    `gorm:"type:time;not null" json:"end_time"`   // HH:MM
+}
+
+// Response 回答
+type Response struct {
+	ID             uint              `gorm:"primaryKey" json:"id"`
+	EventID        uuid.UUID         `gorm:"type:uuid;not null;index" json:"event_id"`
+	RespondentName string            `gorm:"type:varchar(255);not null" json:"respondent_name"`
+	Comment        string            `gorm:"type:text" json:"comment"`
+	CreatedAt      time.Time         `json:"created_at"`
+	Answers        []CandidateAnswer `gorm:"foreignKey:ResponseID;constraint:OnDelete:CASCADE" json:"answers"`
+}
+
+// CandidateAnswer 候補日に対する回答 (〇=ok, △=maybe, ×=ng)
+type CandidateAnswer struct {
+	ID          uint      `gorm:"primaryKey" json:"id"`
+	ResponseID  uint      `gorm:"not null;uniqueIndex:idx_response_candidate" json:"response_id"`
+	CandidateID uint      `gorm:"not null;uniqueIndex:idx_response_candidate;index" json:"candidate_id"`
+	AnswerStatus string    `gorm:"type:varchar(10);not null" json:"answer_status"` // 'ok', 'maybe', 'ng'
+}
