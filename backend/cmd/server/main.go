@@ -52,6 +52,8 @@ func main() {
 	authMux.HandleFunc("GET /api/events", handler.HandleListEvents)
 	authMux.HandleFunc("PUT /api/events/{id}", handler.HandleUpdateEvent)
 	authMux.HandleFunc("DELETE /api/events/{id}", handler.HandleDeleteEvent)
+	authMux.HandleFunc("POST /api/ai/parse-event", handler.HandleParseEvent)
+	authMux.HandleFunc("POST /api/ai/suggest-schedule", handler.HandleSuggestSchedule)
 
 	// イベント詳細・回答登録 (パブリック)
 	mux.HandleFunc("GET /api/events/{id}", handler.HandleGetEvent)
@@ -59,7 +61,7 @@ func main() {
 	mux.HandleFunc("DELETE /api/events/{id}/responses/{response_id}", handler.HandleDeleteResponse)
 
 	// ルーター統合
-	// 認証ミドルウェアで保護されたパスをメインの ServeMux に登録
+	// 認証ミドルウェアで保護されたパスをメイン of ServeMux に登録
 	protectedHandler := handler.AuthMiddleware(authMux)
 	
 	// パスマッチングルールのため、認証が必要なエンドポイントは authMux を通す
@@ -69,6 +71,7 @@ func main() {
 		// 特定の認証が必要なパスのみミドルウェアを通す
 		if r.URL.Path == "/api/auth/me" || 
 		   r.URL.Path == "/api/auth/apikey" || 
+		   strings.HasPrefix(r.URL.Path, "/api/ai/") ||
 		   (r.URL.Path == "/api/events" && (r.Method == "POST" || r.Method == "GET")) ||
 		   (strings.HasPrefix(r.URL.Path, "/api/events/") && !strings.HasSuffix(r.URL.Path, "/responses") && !strings.Contains(r.URL.Path, "/responses/") && (r.Method == "PUT" || r.Method == "DELETE")) {
 			protectedHandler.ServeHTTP(w, r)
