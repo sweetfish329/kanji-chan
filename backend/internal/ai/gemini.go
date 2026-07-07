@@ -1,66 +1,20 @@
 package ai
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"time"
 
+	"github.com/google/generative-ai-go/genai"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
+	"google.golang.org/api/option"
 )
 
 const (
-	geminiAPIURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+	geminiModelName = "gemini-2.5-flash"
 )
-
-// Gemini API Request structs
-type Part struct {
-	Text string `json:"text"`
-}
-
-type Content struct {
-	Parts []Part `json:"parts"`
-}
-
-type Schema struct {
-	Type        string            `json:"type"`
-	Properties  map[string]Schema `json:"properties,omitempty"`
-	Required    []string          `json:"required,omitempty"`
-	Items       *Schema           `json:"items,omitempty"`
-	Description string            `json:"description,omitempty"`
-}
-
-type ResponseMimeType string
-
-const (
-	MimeTypeJSON ResponseMimeType = "application/json"
-)
-
-type Configuration struct {
-	ResponseMimeType ResponseMimeType `json:"responseMimeType,omitempty"`
-	ResponseSchema   *Schema          `json:"responseSchema,omitempty"`
-}
-
-type GeminiRequest struct {
-	Contents         []Content      `json:"contents"`
-	GenerationConfig Configuration  `json:"generationConfig,omitempty"`
-}
-
-// Gemini API Response structs
-type Candidate struct {
-	Content struct {
-		Parts []struct {
-			Text string `json:"text"`
-		} `json:"parts"`
-	} `json:"content"`
-}
-
-type GeminiResponse struct {
-	Candidates []Candidate `json:"candidates"`
-}
 
 // getAPIKey 優先順位: 幹事ユーザーが個別に設定したAPIキー > 環境変数
 func getAPIKey(user *model.User) string {
@@ -88,24 +42,31 @@ func ParseEvent(ctx context.Context, text string, user *model.User) (*ParsedEven
 		return nil, fmt.Errorf("Gemini API key is not configured")
 	}
 
-	// Schema for structured JSON output
-	eventSchema := &Schema{
-		Type: "OBJECT",
-		Properties: map[string]Schema{
-			"title": {Type: "STRING", Description: "The summarized event name (e.g. 'Shibuya Drinking Party')"},
-			"description": {Type: "STRING", Description: "The extracted purpose or summary of the event"},
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+	defer client.Close()
+
+	model := client.GenerativeModel(geminiModelName)
+
+	// Go SDK の Schema 構築
+	eventSchema := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
+			"title":       {Type: genai.TypeString},
+			"description": {Type: genai.TypeString},
 			"candidates": {
-				Type: "ARRAY",
-				Items: &Schema{
-					Type: "OBJECT",
-					Properties: map[string]Schema{
-						"event_date": {Type: "STRING", Description: "Suggested date in YYYY-MM-DD format"},
-						"start_time": {Type: "STRING", Description: "Suggested start time in HH:MM format (24-hour)"},
-						"end_time":   {Type: "STRING", Description: "Suggested end time in HH:MM format (24-hour). If not specified, default to 2 hours after start_time"},
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"event_date": {Type: genai.TypeString},
+						"start_time": {Type: genai.TypeString},
+						"end_time":   {Type: genai.TypeString},
 					},
 					Required: []string{"event_date", "start_time", "end_time"},
 				},
-				Description: "List of proposed candidate slots",
 			},
 		},
 		Required: []string{"title", "description", "candidates"},
@@ -123,28 +84,27 @@ Note:
 - Default to 2 hours duration if not specified.
 - Generate at least 2-4 candidate slots as requested or reasonable.`, currentTime)
 
-	reqPayload := GeminiRequest{
-		Contents: []Content{
-			{
-				Parts: []Part{
-					{Text: fmt.Sprintf("%s\n\nUser request: %s", systemPrompt, text)},
-				},
-			},
-		},
-		GenerationConfig: Configuration{
-			ResponseMimeType: MimeTypeJSON,
-			ResponseSchema:   eventSchema,
-		},
+	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
+	model.ResponseMIMEType = "application/json"
+	model.ResponseSchema = eventSchema
+
+	resp, err := model.GenerateContent(ctx, genai.Text(text))
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate content: %w", err)
 	}
 
-	respBody, err := callGeminiAPI(ctx, apiKey, reqPayload)
-	if err != nil {
-		return nil, err
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
+		return nil, fmt.Errorf("empty response from Gemini API")
+	}
+
+	respPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response part type")
 	}
 
 	var parsed ParsedEventResponse
-	if err := json.Unmarshal(respBody, &parsed); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w (raw: %s)", err, string(respBody))
+	if err := json.Unmarshal([]byte(respPart), &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse AI response: %w (raw: %s)", err, string(respPart))
 	}
 
 	return &parsed, nil
@@ -171,30 +131,38 @@ func SuggestSchedule(ctx context.Context, event *model.Event, preferences string
 		return nil, fmt.Errorf("Gemini API key is not configured")
 	}
 
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+	}
+	defer client.Close()
+
+	model := client.GenerativeModel(geminiModelName)
+
 	// イベント、候補日、回答データをプロンプト用に整形
 	eventDataJSON, err := json.MarshalIndent(event, "", "  ")
 	if err != nil {
 		return nil, err
 	}
 
-	// Schema for structured JSON output
-	suggestionSchema := &Schema{
-		Type: "OBJECT",
-		Properties: map[string]Schema{
+	// Go SDK の Schema 構築
+	suggestionSchema := &genai.Schema{
+		Type: genai.TypeObject,
+		Properties: map[string]*genai.Schema{
 			"suggestions": {
-				Type: "ARRAY",
-				Items: &Schema{
-					Type: "OBJECT",
-					Properties: map[string]Schema{
-						"candidate_id": {Type: "INTEGER", Description: "The ID of the candidate slot"},
-						"rank":         {Type: "INTEGER", Description: "Recommendation rank (1=Best, 2=Second, 3=Third)"},
-						"score":        {Type: "INTEGER", Description: "Calculated compatibility score (e.g., ok=2pts, maybe=1pt, ng=0pts)"},
-						"reason":       {Type: "STRING", Description: "Detailed reason for the recommendation (e.g., 'All 5 people can join', 'Maximum participation but Person X cannot attend')"},
+				Type: genai.TypeArray,
+				Items: &genai.Schema{
+					Type: genai.TypeObject,
+					Properties: map[string]*genai.Schema{
+						"candidate_id": {Type: genai.TypeInteger},
+						"rank":         {Type: genai.TypeInteger},
+						"score":        {Type: genai.TypeInteger},
+						"reason":       {Type: genai.TypeString},
 					},
 					Required: []string{"candidate_id", "rank", "score", "reason"},
 				},
 			},
-			"overall_analysis": {Type: "STRING", Description: "Overall summary analysis and strategic advice for the organizer"},
+			"overall_analysis": {Type: genai.TypeString},
 		},
 		Required: []string{"suggestions", "overall_analysis"},
 	}
@@ -209,68 +177,29 @@ Your task:
 4. Provide a detailed explanation for each rank (who cannot attend, pros/cons).
 5. Write the response in Japanese.`
 
-	reqPayload := GeminiRequest{
-		Contents: []Content{
-			{
-				Parts: []Part{
-					{Text: fmt.Sprintf("%s\n\nOrganizer Preferences: %s\n\nEvent Responses: %s", systemPrompt, preferences, string(eventDataJSON))},
-				},
-			},
-		},
-		GenerationConfig: Configuration{
-			ResponseMimeType: MimeTypeJSON,
-			ResponseSchema:   suggestionSchema,
-		},
-	}
+	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
+	model.ResponseMIMEType = "application/json"
+	model.ResponseSchema = suggestionSchema
 
-	respBody, err := callGeminiAPI(ctx, apiKey, reqPayload)
+	promptText := fmt.Sprintf("Organizer Preferences: %s\n\nEvent Responses: %s", preferences, string(eventDataJSON))
+	resp, err := model.GenerateContent(ctx, genai.Text(promptText))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate content: %w", err)
 	}
 
-	var suggestions AISuggestionResponse
-	if err := json.Unmarshal(respBody, &suggestions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI suggestions: %w (raw: %s)", err, string(respBody))
-	}
-
-	return &suggestions, nil
-}
-
-// callGeminiAPI Gemini APIとの実際の通信部分
-func callGeminiAPI(ctx context.Context, apiKey string, payload GeminiRequest) ([]byte, error) {
-	url := fmt.Sprintf("%s?key=%s", geminiAPIURL, apiKey)
-	reqJSON, err := json.Marshal(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqJSON))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("API request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errData map[string]interface{}
-		json.NewDecoder(resp.Body).Decode(&errData)
-		return nil, fmt.Errorf("API returned non-200 status %d: %v", resp.StatusCode, errData)
-	}
-
-	var geminiResp GeminiResponse
-	if err := json.NewDecoder(resp.Body).Decode(&geminiResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
+	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
 		return nil, fmt.Errorf("empty response from Gemini API")
 	}
 
-	return []byte(geminiResp.Candidates[0].Content.Parts[0].Text), nil
+	respPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
+	if !ok {
+		return nil, fmt.Errorf("unexpected response part type")
+	}
+
+	var suggestions AISuggestionResponse
+	if err := json.Unmarshal([]byte(respPart), &suggestions); err != nil {
+		return nil, fmt.Errorf("failed to parse AI suggestions: %w (raw: %s)", err, string(respPart))
+	}
+
+	return &suggestions, nil
 }
