@@ -179,7 +179,7 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 0 0 4px var(--border-focus);
 }
 
-label {
+label, .form-label {
   display: block;
   margin-bottom: 0.5rem;
   color: var(--text-secondary);

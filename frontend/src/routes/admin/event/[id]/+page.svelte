@@ -366,7 +366,8 @@
                 {#each aiSuggestions.suggestions as sug}
                   {@const candidate = event.candidates.find(c => c.id === sug.candidate_id)}
                   {#if candidate}
-                    <div 
+                    <button 
+                      type="button"
                       class="sug-card glass-panel" 
                       class:active={selectedCandidateId === sug.candidate_id}
                       class:rank-1={sug.rank === 1}
@@ -382,7 +383,7 @@
                       </div>
                       <h5 class="font-mono">{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
                       <p class="sug-reason">{sug.reason}</p>
-                    </div>
+                    </button>
                   {/if}
                 {/each}
               </div>
@@ -646,7 +647,10 @@
     padding: 1rem;
     cursor: pointer;
     transition: all var(--transition-fast);
-    border-color: var(--border-glass);
+    border: 1px solid var(--border-glass);
+    text-align: left;
+    width: 100%;
+    font-family: inherit;
   }
 
   .sug-card:hover {

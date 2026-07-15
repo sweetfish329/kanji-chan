@@ -358,7 +358,7 @@
                 </div>
 
                 <div class="candidates-editor">
-                  <label>日程候補スロット</label>
+                  <span class="form-label">日程候補スロット</span>
                   {#each parsedCandidates as cand, index}
                     <div class="candidate-row">
                       <input type="date" bind:value={cand.event_date} />
@@ -422,7 +422,7 @@
             </div>
 
             <div class="candidates-editor">
-              <label>日程候補スロット</label>
+              <span class="form-label">日程候補スロット</span>
               {#each manualCandidates as cand, index}
                 <div class="candidate-row">
                   <input type="date" bind:value={cand.event_date} />

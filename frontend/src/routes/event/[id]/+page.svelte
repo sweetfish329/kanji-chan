@@ -453,7 +453,7 @@
           </div>
 
           <div class="response-dates-picker">
-            <label>各日程への都合</label>
+            <span class="form-label">各日程への都合</span>
             <div class="date-picker-list">
               {#each event.candidates as cand}
                 <div class="picker-row">
