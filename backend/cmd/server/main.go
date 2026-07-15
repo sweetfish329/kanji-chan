@@ -1,6 +1,9 @@
 package main
 
 import (
+	"embed"
+	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +15,9 @@ import (
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/handler"
 )
+
+//go:embed dist/*
+var webAssets embed.FS
 
 func main() {
 	// ローカル開発時は .env ファイルをロード (コンテナ時は環境変数が直接渡されるため無視してOK)
@@ -77,6 +83,52 @@ func main() {
 	r.DELETE("/api/events/:id", handler.HandleDeleteEvent)
 	r.POST("/api/ai/parse-event", handler.HandleParseEvent)
 	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule)
+
+	// フロントエンドの静的アセット配信 (SPAルーティング対応)
+	assetFS, err := fs.Sub(webAssets, "dist")
+	if err != nil {
+		log.Fatalf("Failed to create static asset filesystem: %v", err)
+	}
+
+	staticHandler := echo.StaticDirectoryHandler(assetFS, false)
+
+	e.GET("/*", func(c *echo.Context) error {
+		path := c.Param("*")
+		if path == "" {
+			path = "index.html"
+		}
+
+		// ファイルが存在するかチェック
+		file, err := assetFS.Open(path)
+		if err == nil {
+			file.Close()
+			return staticHandler(c)
+		}
+
+		// 存在しない場合は、SPAルーティングのために index.html を返す
+		indexFile, err := assetFS.Open("index.html")
+		if err != nil {
+			return c.String(http.StatusNotFound, "Not Found")
+		}
+		defer indexFile.Close()
+
+		stat, err := indexFile.Stat()
+		if err != nil {
+			return c.String(http.StatusInternalServerError, "Internal Server Error")
+		}
+
+		seeker, ok := indexFile.(io.ReadSeeker)
+		if !ok {
+			content, err := io.ReadAll(indexFile)
+			if err != nil {
+				return c.String(http.StatusInternalServerError, "Internal Server Error")
+			}
+			return c.HTML(http.StatusOK, string(content))
+		}
+
+		http.ServeContent(c.Response(), c.Request(), "index.html", stat.ModTime(), seeker)
+		return nil
+	})
 
 	log.Printf("Starting Kanji-Chan backend server on port %s...", port)
 	if err := e.Start(":" + port); err != nil {

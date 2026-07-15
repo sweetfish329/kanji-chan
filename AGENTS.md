@@ -8,8 +8,8 @@
 
 - **Backend**: Go 1.26+ (実装は互換性重視で Go 1.23+ の機能を利用しつつ `go.mod` に 1.26 を指定)
 - **Frontend**: Svelte 5 (Latest Runes) + Bun
-- **Database**: PostgreSQL (Docker Composeで起動)
-- **Infrastucture**: Docker Compose (`podman-compose` にも対応する標準の `docker-compose.yml` 構成)
+- **Database**: SQLite (埋め込みデータベース。1コンテナ構成)
+- **Infrastucture**: Docker Compose (シングルコンテナ構成。`podman-compose` にも対応)
 - **OAuth**: Google または GitHub OAuth 2.0
 - **AI Engine**: Gemini API (または OpenAI API。デフォルトは Gemini API)
 
@@ -19,10 +19,10 @@
 
 ```mermaid
 graph TD
-    Client[ブラウザ Svelte 5] <-->|API / JSON| API[Go Backend]
-    API <-->|SQL| DB[(PostgreSQL)]
-    API <-->|OAuth 2.0| OAuth[Google / GitHub OAuth]
-    API <-->|Structured JSON| AI[Gemini API / LLM]
+    Client[ブラウザ Svelte 5] <-->|静的ファイル & API| App[Go Backend / Echo]
+    App <-->|SQL| DB[(SQLite: kanji.db)]
+    App <-->|OAuth 2.0| OAuth[Google / GitHub OAuth]
+    App <-->|Structured JSON| AI[Gemini API / LLM]
 ```
 
 ### ディレクトリ構成案
@@ -100,12 +100,12 @@ kanji-chan/
 
 ---
 
-## 4. データベース設計 (PostgreSQL)
+## 4. データベース設計 (SQLite)
 
 ```sql
 -- ユーザーテーブル (管理者・幹事)
 CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     oauth_provider VARCHAR(50) NOT NULL,
     oauth_id VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -116,13 +116,14 @@ CREATE TABLE users (
 );
 
 -- イベントテーブル
+-- SQLiteではGORMのBeforeCreateフックでGo側からUUIDを生成して挿入します
 CREATE TABLE events (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id TEXT PRIMARY KEY, -- UUID文字列
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    created_by INT REFERENCES users(id) ON DELETE SET NULL,
+    created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
     status VARCHAR(50) DEFAULT 'scheduling', -- 'scheduling' (調整中) or 'confirmed' (確定)
-    confirmed_candidate_id INT, -- 最終確定した候補日時ID (後でリレーション追加)
+    confirmed_candidate_id INTEGER, -- 最終確定した候補日時ID
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

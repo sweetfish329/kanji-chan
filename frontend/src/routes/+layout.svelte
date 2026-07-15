@@ -4,6 +4,8 @@
   import { api } from '$lib/api';
   import { SvelteToast } from '@zerodevx/svelte-toast';
 
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
   // Svelte 5 Runes for Global Auth State
   interface User {
     id: number;
@@ -55,7 +57,7 @@
           <button onclick={logout} class="btn btn-secondary btn-sm-nav">ログアウト</button>
         </div>
       {:else}
-        <a href="http://localhost:8080/api/auth/login" class="btn btn-primary btn-sm-nav">
+        <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary btn-sm-nav">
           <span class="material-symbols-rounded">login</span>
           幹事ログイン
         </a>

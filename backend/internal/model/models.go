@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // User 幹事・管理者
@@ -20,7 +21,7 @@ type User struct {
 
 // Event 調整イベント
 type Event struct {
-	ID                   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	ID                   uuid.UUID `gorm:"primaryKey" json:"id"`
 	Title                string    `gorm:"type:varchar(255);not null" json:"title"`
 	Description          string    `gorm:"type:text" json:"description"`
 	CreatedBy            *uint     `json:"created_by,omitempty"`
@@ -34,10 +35,18 @@ type Event struct {
 	ConfirmedCandidate *EventCandidate  `gorm:"foreignKey:ConfirmedCandidateID" json:"confirmed_candidate,omitempty"`
 }
 
+// BeforeCreate GORMフック: レコード作成前にUUIDを自動生成する
+func (e *Event) BeforeCreate(tx *gorm.DB) (err error) {
+	if e.ID == uuid.Nil {
+		e.ID = uuid.New()
+	}
+	return nil
+}
+
 // EventCandidate イベントの候補日時
 type EventCandidate struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	EventID   uuid.UUID `gorm:"type:uuid;not null;index" json:"event_id"`
+	EventID   uuid.UUID `gorm:"not null;index" json:"event_id"`
 	EventDate string    `gorm:"type:date;not null" json:"event_date"` // YYYY-MM-DD
 	StartTime string    `gorm:"type:time;not null" json:"start_time"` // HH:MM
 	EndTime   string    `gorm:"type:time;not null" json:"end_time"`   // HH:MM
@@ -46,7 +55,7 @@ type EventCandidate struct {
 // Response 回答
 type Response struct {
 	ID             uint              `gorm:"primaryKey" json:"id"`
-	EventID        uuid.UUID         `gorm:"type:uuid;not null;index" json:"event_id"`
+	EventID        uuid.UUID         `gorm:"not null;index" json:"event_id"`
 	RespondentName string            `gorm:"type:varchar(255);not null" json:"respondent_name"`
 	Comment        string            `gorm:"type:text" json:"comment"`
 	EditToken      string            `gorm:"type:varchar(255);not null" json:"edit_token"`
