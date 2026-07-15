@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/handler"
@@ -36,12 +36,12 @@ func main() {
 	e := echo.New()
 
 	// ミドルウェアの設定
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOriginFunc: func(origin string) (bool, error) {
+		UnsafeAllowOriginFunc: func(c *echo.Context, origin string) (string, bool, error) {
 			// クッキー認証（Credentials: true）と任意のOrigin許可を両立するための動的Origin判定
-			return true, nil
+			return origin, true, nil
 		},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
 		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization, "X-Response-Token"},
@@ -49,7 +49,7 @@ func main() {
 	}))
 
 	// 共通・認証 (パブリック)
-	e.GET("/api/health", func(c echo.Context) error {
+	e.GET("/api/health", func(c *echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{
 			"status":  "ok",
 			"message": "Kanji-Chan API is running",

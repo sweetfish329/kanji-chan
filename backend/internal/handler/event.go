@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
@@ -21,7 +21,7 @@ type CreateEventRequest struct {
 }
 
 // HandleCreateEvent 新規イベント作成 (幹事専用)
-func HandleCreateEvent(c echo.Context) error {
+func HandleCreateEvent(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
@@ -77,7 +77,7 @@ func HandleCreateEvent(c echo.Context) error {
 }
 
 // HandleListEvents ログイン中の幹事が作成したイベント一覧を取得
-func HandleListEvents(c echo.Context) error {
+func HandleListEvents(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
@@ -93,7 +93,7 @@ func HandleListEvents(c echo.Context) error {
 }
 
 // HandleGetEvent イベント詳細を取得 (回答状況・候補日含む、ログイン不要)
-func HandleGetEvent(c echo.Context) error {
+func HandleGetEvent(c *echo.Context) error {
 	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
@@ -121,7 +121,7 @@ func HandleGetEvent(c echo.Context) error {
 }
 
 // HandleUpdateEvent イベント情報の更新・確定 (幹事専用)
-func HandleUpdateEvent(c echo.Context) error {
+func HandleUpdateEvent(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
@@ -176,7 +176,7 @@ func HandleUpdateEvent(c echo.Context) error {
 }
 
 // HandleDeleteEvent イベントの削除 (幹事専用)
-func HandleDeleteEvent(c echo.Context) error {
+func HandleDeleteEvent(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")

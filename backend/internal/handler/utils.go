@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 )
 
@@ -12,7 +12,7 @@ const UserKey = "user"
 
 // AuthMiddleware ログイン済みの幹事/管理者用の認証ミドルウェア
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
+	return func(c *echo.Context) error {
 		var tokenStr string
 
 		// 1. Authorizationヘッダーを確認
@@ -45,7 +45,7 @@ func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // GetUserFromContext コンテキストから認証済みユーザー情報を取得
-func GetUserFromContext(c echo.Context) (*auth.Claims, bool) {
+func GetUserFromContext(c *echo.Context) (*auth.Claims, bool) {
 	claims, ok := c.Get(UserKey).(*auth.Claims)
 	return claims, ok
 }

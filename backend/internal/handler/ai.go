@@ -4,14 +4,14 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/sweetfish329/kanji-chan/backend/internal/ai"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
 
 // HandleParseEvent 自然文からイベント候補日を解析 (幹事専用)
-func HandleParseEvent(c echo.Context) error {
+func HandleParseEvent(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
@@ -43,7 +43,7 @@ func HandleParseEvent(c echo.Context) error {
 }
 
 // HandleSuggestSchedule 回答状況から最適な日程を絞り込む (幹事専用)
-func HandleSuggestSchedule(c echo.Context) error {
+func HandleSuggestSchedule(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")

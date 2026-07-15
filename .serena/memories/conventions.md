@@ -7,7 +7,8 @@
   - `internal/database`: DB initialization, migration, and connection.
   - `internal/auth`: OAuth handler and session state via Goth.
   - `internal/ai`: Prompt orchestration and structured Gemini API calls.
-  - `internal/handler`: REST endpoints using Echo.
+  - `internal/handler`: REST endpoints using Echo v5.
+- Echo v5 Signature: handlers and middlewares receive a struct pointer `*echo.Context` instead of the interface `echo.Context`. `c.Response()` directly returns `http.ResponseWriter` (no `.Writer` field).
 - Error handling: return errors up to the handler layer to be converted to consistent JSON responses.
 
 ## Frontend (Svelte 5)

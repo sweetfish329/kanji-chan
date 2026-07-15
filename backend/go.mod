@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
-	github.com/labstack/echo/v4 v4.15.4
+	github.com/labstack/echo/v5 v5.3.0
 	github.com/markbates/goth v1.82.0
 	google.golang.org/adk/v2 v2.0.0
 	google.golang.org/genai v1.63.0

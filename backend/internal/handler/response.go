@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
@@ -29,12 +29,12 @@ type UpdateResponseRequest struct {
 }
 
 // checkResponseAuthority 編集・削除の権限を検証（消えていても編集可能にするため常に許可）
-func checkResponseAuthority(c echo.Context, response *model.Response) (bool, error) {
+func checkResponseAuthority(c *echo.Context, response *model.Response) (bool, error) {
 	return true, nil
 }
 
 // HandleAddResponse イベントに対する回答の登録 (ログイン不要)
-func HandleAddResponse(c echo.Context) error {
+func HandleAddResponse(c *echo.Context) error {
 	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
@@ -100,7 +100,7 @@ func HandleAddResponse(c echo.Context) error {
 }
 
 // HandleUpdateResponse 回答の編集・更新 (ログイン不要 / トークン認証)
-func HandleUpdateResponse(c echo.Context) error {
+func HandleUpdateResponse(c *echo.Context) error {
 	responseIDStr := c.Param("response_id")
 	if responseIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing response ID")
@@ -173,7 +173,7 @@ func HandleUpdateResponse(c echo.Context) error {
 }
 
 // HandleDeleteResponse 回答の削除 (トークン認証 または 幹事セッション)
-func HandleDeleteResponse(c echo.Context) error {
+func HandleDeleteResponse(c *echo.Context) error {
 	responseIDStr := c.Param("response_id")
 	if responseIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing response ID")

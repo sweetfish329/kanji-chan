@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/markbates/goth/gothic"
 	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
@@ -13,7 +13,7 @@ import (
 )
 
 // HandleLogin OAuthログインの開始 (リダイレクト)
-func HandleLogin(c echo.Context) error {
+func HandleLogin(c *echo.Context) error {
 	provider := os.Getenv("OAUTH_PROVIDER")
 	if provider == "" {
 		provider = "google"
@@ -25,12 +25,12 @@ func HandleLogin(c echo.Context) error {
 	c.Request().URL.RawQuery = q.Encode()
 
 	// gothicによる認証の開始
-	gothic.BeginAuthHandler(c.Response().Writer, c.Request())
+	gothic.BeginAuthHandler(c.Response(), c.Request())
 	return nil
 }
 
 // HandleCallback OAuthコールバックの処理
-func HandleCallback(c echo.Context) error {
+func HandleCallback(c *echo.Context) error {
 	provider := os.Getenv("OAUTH_PROVIDER")
 	if provider == "" {
 		provider = "google"
@@ -40,7 +40,7 @@ func HandleCallback(c echo.Context) error {
 	q.Set("provider", provider)
 	c.Request().URL.RawQuery = q.Encode()
 
-	gothUser, err := gothic.CompleteUserAuth(c.Response().Writer, c.Request())
+	gothUser, err := gothic.CompleteUserAuth(c.Response(), c.Request())
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "OAuth callback failed: "+err.Error())
 	}
@@ -98,7 +98,7 @@ func HandleCallback(c echo.Context) error {
 }
 
 // HandleLogout ログアウト処理
-func HandleLogout(c echo.Context) error {
+func HandleLogout(c *echo.Context) error {
 	cookie := &http.Cookie{
 		Name:     "session_token",
 		Value:    "",
@@ -111,7 +111,7 @@ func HandleLogout(c echo.Context) error {
 }
 
 // HandleMe 現在のユーザー情報を取得
-func HandleMe(c echo.Context) error {
+func HandleMe(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
@@ -126,7 +126,7 @@ func HandleMe(c echo.Context) error {
 }
 
 // HandleUpdateAPIKey 管理画面からGemini APIキーを登録・更新
-func HandleUpdateAPIKey(c echo.Context) error {
+func HandleUpdateAPIKey(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
