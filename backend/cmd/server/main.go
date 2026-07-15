@@ -76,7 +76,7 @@ func main() {
 
 	r.GET("/api/auth/me", handler.HandleMe, handler.AuthMiddleware)
 	r.POST("/api/auth/apikey", handler.HandleUpdateAPIKey, handler.AuthMiddleware)
-	r.POST("/api/events", handler.HandleCreateEvent, handler.AuthMiddleware)
+	r.POST("/api/events", handler.HandleCreateEvent)
 	r.GET("/api/events", handler.HandleListEvents, handler.AuthMiddleware)
 	r.PUT("/api/events/:id", handler.HandleUpdateEvent, handler.AuthMiddleware)
 	r.DELETE("/api/events/:id", handler.HandleDeleteEvent, handler.AuthMiddleware)

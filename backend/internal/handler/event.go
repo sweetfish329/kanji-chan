@@ -20,11 +20,12 @@ type CreateEventRequest struct {
 	} `json:"candidates"`
 }
 
-// HandleCreateEvent 新規イベント作成 (幹事専用)
+// HandleCreateEvent 新規イベント作成 (ログイン不要・匿名作成も可)
 func HandleCreateEvent(c *echo.Context) error {
+	var createdByID *uint
 	claims, ok := GetUserFromContext(c)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	if ok {
+		createdByID = &claims.UserID
 	}
 
 	var req CreateEventRequest
@@ -44,7 +45,7 @@ func HandleCreateEvent(c *echo.Context) error {
 		ID:          eventID,
 		Title:       req.Title,
 		Description: req.Description,
-		CreatedBy:   &claims.UserID,
+		CreatedBy:   createdByID,
 		Status:      "scheduling",
 	}
 

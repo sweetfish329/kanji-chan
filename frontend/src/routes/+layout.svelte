@@ -59,7 +59,7 @@
       {:else}
         <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary btn-sm-nav">
           <span class="material-symbols-rounded">login</span>
-          幹事ログイン
+          AI機能を使うにはログイン
         </a>
       {/if}
     </nav>
@@ -80,14 +80,14 @@
 
 <style>
   .main-header {
-    background: hsla(223, 47%, 4%, 0.4);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: rgba(250, 248, 245, 0.7);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-bottom: 1px solid var(--border-glass);
     position: sticky;
     top: 0;
     z-index: 100;
-    padding: 1rem 0;
+    padding: 1.2rem 0;
   }
 
   .nav-container {
@@ -99,52 +99,54 @@
   .logo {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     text-decoration: none;
   }
 
   .logo-icon {
-    color: var(--color-primary);
-    font-size: 1.8rem;
+    color: var(--color-accent);
+    font-size: 1.5rem;
   }
 
   .logo-text {
     font-family: var(--font-display);
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 1.4rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
   }
 
   .user-menu {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.2rem;
   }
 
   .welcome-text {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
   }
 
   .btn-sm-nav {
-    padding: 0.5rem 1rem;
-    font-size: 0.85rem;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
   }
 
   .loading-dots {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
   }
 
   main {
     min-height: calc(100vh - 140px);
-    padding: 2rem 0;
+    padding: 3rem 0;
   }
 
   .main-footer {
     border-top: 1px solid var(--border-glass);
-    padding: 1.5rem 0;
+    padding: 2rem 0;
     text-align: center;
     color: var(--text-muted);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
   }
 </style>
