@@ -73,16 +73,15 @@ func main() {
 
 	// 認証が必要なプライベートグループ
 	r := e.Group("")
-	r.Use(handler.AuthMiddleware)
 
-	r.GET("/api/auth/me", handler.HandleMe)
-	r.POST("/api/auth/apikey", handler.HandleUpdateAPIKey)
-	r.POST("/api/events", handler.HandleCreateEvent)
-	r.GET("/api/events", handler.HandleListEvents)
-	r.PUT("/api/events/:id", handler.HandleUpdateEvent)
-	r.DELETE("/api/events/:id", handler.HandleDeleteEvent)
-	r.POST("/api/ai/parse-event", handler.HandleParseEvent)
-	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule)
+	r.GET("/api/auth/me", handler.HandleMe, handler.AuthMiddleware)
+	r.POST("/api/auth/apikey", handler.HandleUpdateAPIKey, handler.AuthMiddleware)
+	r.POST("/api/events", handler.HandleCreateEvent, handler.AuthMiddleware)
+	r.GET("/api/events", handler.HandleListEvents, handler.AuthMiddleware)
+	r.PUT("/api/events/:id", handler.HandleUpdateEvent, handler.AuthMiddleware)
+	r.DELETE("/api/events/:id", handler.HandleDeleteEvent, handler.AuthMiddleware)
+	r.POST("/api/ai/parse-event", handler.HandleParseEvent, handler.AuthMiddleware)
+	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule, handler.AuthMiddleware)
 
 	// フロントエンドの静的アセット配信 (SPAルーティング対応)
 	assetFS, err := fs.Sub(webAssets, "dist")
