@@ -195,6 +195,26 @@
       });
     }
   }
+
+  async function deleteEvent(id: string, title: string) {
+    if (!confirm(`イベント「${title}」を削除しますか？\nこの操作は取り消せません。`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/events/${id}`);
+      events = events.filter(e => e.id !== id);
+      toast.push(`イベント「${title}」を削除しました`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '削除に失敗しました';
+      toast.push(`イベントの削除に失敗しました: ${msg}`, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
+    }
+  }
 </script>
 
 <div class="container admin-container animate-fade-in">
@@ -277,6 +297,13 @@
                     <div class="event-actions">
                       <a href={`/event/${event.id}`} class="btn btn-secondary btn-sm">回答ページ</a>
                       <a href={`/admin/event/${event.id}`} class="btn btn-primary btn-sm">管理・AI提案</a>
+                      <button 
+                        class="btn btn-danger btn-sm-del" 
+                        title="イベント削除"
+                        onclick={() => deleteEvent(event.id, event.title)}
+                      >
+                        <span class="material-symbols-rounded">delete</span>
+                      </button>
                     </div>
                   </div>
                 {/each}
@@ -736,5 +763,27 @@
     font-size: 0.85rem;
     margin-bottom: 1rem;
     font-weight: 500;
+  }
+
+  .btn-danger {
+    background-color: hsla(350, 89%, 60%, 0.15);
+    border: 1px solid var(--color-ng);
+    color: var(--color-ng);
+  }
+
+  .btn-danger:hover {
+    background-color: var(--color-ng);
+    color: #fff;
+  }
+
+  .btn-sm-del {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
 </style>
