@@ -1,0 +1,41 @@
+# Lefthook Configuration
+# https://github.com/evilmartians/lefthook
+
+pre-commit:
+  parallel: true
+  commands:
+    # Backend (Go) checks
+    go-fmt:
+      root: "backend"
+      glob: "*.go"
+      run: go fmt ./...
+    go-vet:
+      root: "backend"
+      glob: "*.go"
+      run: go vet ./...
+
+    # Frontend (TypeScript/Svelte) checks using high-speed Oxc
+    oxlint:
+      root: "frontend"
+      glob: "src/**/*.{js,ts,svelte}"
+      run: bunx oxlint {staged_files}
+    oxfmt:
+      root: "frontend"
+      glob: "src/**/*.{js,ts,svelte}"
+      run: bunx oxfmt --check {staged_files}
+    svelte-check:
+      root: "frontend"
+      glob: "src/**/*.{ts,svelte}"
+      run: bun run check
+
+pre-push:
+  commands:
+    # Backend build check
+    go-build:
+      root: "backend"
+      run: go build ./...
+    
+    # Frontend build check
+    frontend-build:
+      root: "frontend"
+      run: bun run build
