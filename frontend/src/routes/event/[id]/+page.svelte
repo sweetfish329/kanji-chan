@@ -73,7 +73,7 @@
     }
   });
 
-  function hasEditPermission(responseId: number): boolean {
+  function isMyResponse(responseId: number): boolean {
     return !!responseTokens[responseId];
   }
 
@@ -192,6 +192,7 @@
       if (isEditing && editingResponseId !== null) {
         // 編集・更新リクエスト
         const token = responseTokens[editingResponseId];
+        const headers = token ? { 'X-Response-Token': token } : undefined;
         await api.put<Response>(
           `/events/${eventId}/responses/${editingResponseId}`,
           {
@@ -199,9 +200,7 @@
             comment,
             answers: answersArray
           },
-          {
-            headers: { 'X-Response-Token': token }
-          }
+          { headers }
         );
 
         toast.push('回答を更新しました！');
@@ -345,26 +344,31 @@
             <tr>
               <th class="sticky-col">候補日程</th>
               {#each event.responses as resp}
-                <th>
+                <th class:th-my-response={isMyResponse(resp.id)}>
                   <div class="respondent-header">
-                    <span class="respondent-name">{resp.respondent_name}</span>
-                    <div class="header-action-group">
-                      {#if hasEditPermission(resp.id)}
-                        <button 
-                          class="edit-resp-btn" 
-                          title="回答を編集"
-                          onclick={() => startEdit(resp)}
-                        >
-                          <span class="material-symbols-rounded">edit</span>
-                        </button>
-                        <button 
-                          class="delete-resp-btn" 
-                          title="回答を削除"
-                          onclick={() => deleteResponse(resp.id, resp.respondent_name)}
-                        >
-                          <span class="material-symbols-rounded">close</span>
-                        </button>
+                    <div class="respondent-name-wrapper">
+                      {#if isMyResponse(resp.id)}
+                        <span class="my-response-badge">あなた</span>
                       {/if}
+                      <span class="respondent-name">{resp.respondent_name}</span>
+                    </div>
+                    <div class="header-action-group">
+                      <button 
+                        class="edit-resp-btn" 
+                        class:my-btn={isMyResponse(resp.id)}
+                        title="回答を編集"
+                        onclick={() => startEdit(resp)}
+                      >
+                        <span class="material-symbols-rounded">edit</span>
+                      </button>
+                      <button 
+                        class="delete-resp-btn" 
+                        class:my-btn={isMyResponse(resp.id)}
+                        title="回答を削除"
+                        onclick={() => deleteResponse(resp.id, resp.respondent_name)}
+                      >
+                        <span class="material-symbols-rounded">close</span>
+                      </button>
                     </div>
                   </div>
                 </th>
@@ -384,7 +388,7 @@
                 
                 {#each event.responses as resp}
                   {@const userAns = resp.answers.find(a => a.candidate_id === cand.id)}
-                  <td class="status-cell">
+                  <td class="status-cell" class:cell-my-response={isMyResponse(resp.id)}>
                     {#if userAns}
                       <span class={`status-indicator ${statusConfig[userAns.answer_status].class}`}>
                         {statusConfig[userAns.answer_status].label}
@@ -410,7 +414,7 @@
             <tr class="comment-row">
               <td class="sticky-col comment-label-cell">コメント</td>
               {#each event.responses as resp}
-                <td class="comment-cell">
+                <td class="comment-cell" class:cell-my-response={isMyResponse(resp.id)}>
                   {#if resp.comment}
                     <div class="comment-tooltip-trigger" title={resp.comment}>
                       <span class="material-symbols-rounded">chat_bubble</span>
@@ -639,6 +643,36 @@
     font-weight: 600;
   }
 
+  /* My Response Highlights */
+  .th-my-response {
+    background: hsla(263, 90%, 65%, 0.1) !important;
+    border-left: 1px dashed var(--color-primary);
+    border-right: 1px dashed var(--color-primary);
+  }
+
+  .cell-my-response {
+    background: hsla(263, 90%, 65%, 0.03);
+    border-left: 1px dashed hsla(263, 90%, 65%, 0.2);
+    border-right: 1px dashed hsla(263, 90%, 65%, 0.2);
+  }
+
+  .respondent-name-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+
+  .my-response-badge {
+    font-size: 0.65rem;
+    background: var(--gradient-brand);
+    color: #fff;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+  }
+
+  /* Edit & Delete Action Styles */
   .header-action-group {
     display: flex;
     gap: 0.25rem;
@@ -653,14 +687,22 @@
     padding: 0.2rem;
     border-radius: var(--radius-full);
     transition: all var(--transition-fast);
+    opacity: 0.5;
+  }
+
+  .edit-resp-btn.my-btn, .delete-resp-btn.my-btn {
+    opacity: 1;
+    color: var(--text-primary);
   }
 
   .edit-resp-btn:hover {
+    opacity: 1;
     color: var(--color-primary);
     background: hsla(263, 90%, 65%, 0.1);
   }
 
   .delete-resp-btn:hover {
+    opacity: 1;
     color: var(--color-ng);
     background: hsla(350, 89%, 60%, 0.1);
   }

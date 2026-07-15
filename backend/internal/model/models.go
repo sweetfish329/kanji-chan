@@ -8,30 +8,30 @@ import (
 
 // User 幹事・管理者
 type User struct {
-	ID            uint       `gorm:"primaryKey" json:"id"`
-	OAuthProvider string     `gorm:"type:varchar(50);not null;uniqueIndex:idx_provider_id" json:"oauth_provider"`
-	OAuthID       string     `gorm:"type:varchar(255);not null;uniqueIndex:idx_provider_id" json:"oauth_id"`
-	Email         string     `gorm:"type:varchar(255);not null" json:"email"`
-	Name          string     `gorm:"type:varchar(255);not null" json:"name"`
-	GeminiAPIKey  string     `gorm:"type:varchar(255)" json:"gemini_api_key,omitempty"` // 暗号化して保存するか、まずは平文（デモ用）で
-	CreatedAt     time.Time  `json:"created_at"`
-	Events        []Event    `gorm:"foreignKey:CreatedBy" json:"events,omitempty"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	OAuthProvider string    `gorm:"type:varchar(50);not null;uniqueIndex:idx_provider_id" json:"oauth_provider"`
+	OAuthID       string    `gorm:"type:varchar(255);not null;uniqueIndex:idx_provider_id" json:"oauth_id"`
+	Email         string    `gorm:"type:varchar(255);not null" json:"email"`
+	Name          string    `gorm:"type:varchar(255);not null" json:"name"`
+	GeminiAPIKey  string    `gorm:"type:varchar(255)" json:"gemini_api_key,omitempty"` // 暗号化して保存するか、まずは平文（デモ用）で
+	CreatedAt     time.Time `json:"created_at"`
+	Events        []Event   `gorm:"foreignKey:CreatedBy" json:"events,omitempty"`
 }
 
 // Event 調整イベント
 type Event struct {
-	ID                   uuid.UUID        `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
-	Title                string           `gorm:"type:varchar(255);not null" json:"title"`
-	Description          string           `gorm:"type:text" json:"description"`
-	CreatedBy            *uint            `json:"created_by,omitempty"`
-	Status               string           `gorm:"type:varchar(50);default:'scheduling'" json:"status"` // 'scheduling' or 'confirmed'
-	ConfirmedCandidateID *uint            `json:"confirmed_candidate_id,omitempty"`
-	CreatedAt            time.Time        `json:"created_at"`
-	
+	ID                   uuid.UUID `gorm:"type:uuid;default:gen_random_uuid();primaryKey" json:"id"`
+	Title                string    `gorm:"type:varchar(255);not null" json:"title"`
+	Description          string    `gorm:"type:text" json:"description"`
+	CreatedBy            *uint     `json:"created_by,omitempty"`
+	Status               string    `gorm:"type:varchar(50);default:'scheduling'" json:"status"` // 'scheduling' or 'confirmed'
+	ConfirmedCandidateID *uint     `json:"confirmed_candidate_id,omitempty"`
+	CreatedAt            time.Time `json:"created_at"`
+
 	// リレーション
-	Candidates         []EventCandidate  `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"candidates"`
-	Responses          []Response        `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"responses,omitempty"`
-	ConfirmedCandidate *EventCandidate   `gorm:"foreignKey:ConfirmedCandidateID" json:"confirmed_candidate,omitempty"`
+	Candidates         []EventCandidate `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"candidates"`
+	Responses          []Response       `gorm:"foreignKey:EventID;constraint:OnDelete:CASCADE" json:"responses,omitempty"`
+	ConfirmedCandidate *EventCandidate  `gorm:"foreignKey:ConfirmedCandidateID" json:"confirmed_candidate,omitempty"`
 }
 
 // EventCandidate イベントの候補日時
@@ -56,8 +56,8 @@ type Response struct {
 
 // CandidateAnswer 候補日に対する回答 (〇=ok, △=maybe, ×=ng)
 type CandidateAnswer struct {
-	ID          uint      `gorm:"primaryKey" json:"id"`
-	ResponseID  uint      `gorm:"not null;uniqueIndex:idx_response_candidate" json:"response_id"`
-	CandidateID uint      `gorm:"not null;uniqueIndex:idx_response_candidate;index" json:"candidate_id"`
-	AnswerStatus string    `gorm:"type:varchar(10);not null" json:"answer_status"` // 'ok', 'maybe', 'ng'
+	ID           uint   `gorm:"primaryKey" json:"id"`
+	ResponseID   uint   `gorm:"not null;uniqueIndex:idx_response_candidate" json:"response_id"`
+	CandidateID  uint   `gorm:"not null;uniqueIndex:idx_response_candidate;index" json:"candidate_id"`
+	AnswerStatus string `gorm:"type:varchar(10);not null" json:"answer_status"` // 'ok', 'maybe', 'ng'
 }

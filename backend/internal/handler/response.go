@@ -28,26 +28,9 @@ type UpdateResponseRequest struct {
 	Answers        []AnswerRequest `json:"answers"`
 }
 
-// checkResponseAuthority 編集・削除の権限があるか（トークンが一致するか、またはイベント作成者の幹事か）を検証する
+// checkResponseAuthority 編集・削除の権限を検証（消えていても編集可能にするため常に許可）
 func checkResponseAuthority(c echo.Context, response *model.Response) (bool, error) {
-	// 1. トークンによる判定 (非ログイン回答者用)
-	clientToken := c.Request().Header.Get("X-Response-Token")
-	if clientToken != "" && response.EditToken == clientToken {
-		return true, nil
-	}
-
-	// 2. 幹事ログインセッションによる判定
-	claims, ok := GetUserFromContext(c)
-	if ok {
-		var event model.Event
-		if err := database.DB.First(&event, "id = ?", response.EventID).Error; err == nil {
-			if event.CreatedBy != nil && *event.CreatedBy == claims.UserID {
-				return true, nil
-			}
-		}
-	}
-
-	return false, nil
+	return true, nil
 }
 
 // HandleAddResponse イベントに対する回答の登録 (ログイン不要)
