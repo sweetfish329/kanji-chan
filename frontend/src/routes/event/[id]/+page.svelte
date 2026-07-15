@@ -2,6 +2,12 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
+  import dayjs from 'dayjs';
+  import 'dayjs/locale/ja';
+  import copy from 'copy-to-clipboard';
+  import { toast } from '@zerodevx/svelte-toast';
+
+  dayjs.locale('ja');
 
   interface CandidateAnswer {
     candidate_id: number;
@@ -112,7 +118,12 @@
   async function submitResponse(e: SubmitEvent) {
     e.preventDefault();
     if (!respondentName.trim()) {
-      alert('お名前を入力してください');
+      toast.push('お名前を入力してください', {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
       return;
     }
 
@@ -131,7 +142,7 @@
         answers: answersArray
       });
 
-      alert('回答を登録しました！');
+      toast.push('回答を登録しました！');
       
       // フォームのクリア
       respondentName = '';
@@ -140,7 +151,12 @@
       // 再ロード
       await loadEvent();
     } catch (err: any) {
-      alert('回答の登録に失敗しました: ' + err.message);
+      toast.push('回答の登録に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     } finally {
       submitting = false;
     }
@@ -153,17 +169,21 @@
     
     try {
       await api.delete(`/events/${eventId}/responses/${responseId}`);
-      alert('回答を削除しました');
+      toast.push('回答を削除しました');
       await loadEvent();
     } catch (err: any) {
-      alert('回答の削除に失敗しました: ' + err.message);
+      toast.push('回答の削除に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     }
   }
 
   function formatDateTime(dateStr: string, startStr: string, endStr: string): string {
-    const d = new Date(dateStr);
-    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-    const formattedDate = `${d.getMonth() + 1}/${d.getDate()}(${dayNames[d.getDay()]})`;
+    const d = dayjs(dateStr);
+    const formattedDate = d.format('M/D(ddd)');
     return `${formattedDate} ${startStr.slice(0, 5)}〜${endStr.slice(0, 5)}`;
   }
 </script>
@@ -211,8 +231,8 @@
           <button 
             class="btn btn-secondary" 
             onclick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              alert('URLをクリップボードにコピーしました！');
+              copy(window.location.href);
+              toast.push('URLをコピーしました！');
             }}
           >
             コピー
@@ -402,7 +422,7 @@
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    background: hsla(172, 90%, 43%, 0.1);
+    background: hsla(150, 84%, 37%, 0.1);
     border-color: var(--color-ok);
     padding: 1.5rem 2rem;
   }
@@ -481,12 +501,12 @@
   }
 
   .row-confirmed {
-    background: hsla(172, 90%, 43%, 0.05);
+    background: hsla(150, 84%, 37%, 0.05);
   }
 
   .row-confirmed-badge {
     background: var(--color-ok);
-    color: #0c2020;
+    color: #fff;
     font-size: 0.7rem;
     padding: 0.15rem 0.4rem;
     border-radius: var(--radius-sm);
@@ -518,7 +538,7 @@
 
   .delete-resp-btn:hover {
     color: var(--color-ng);
-    background: hsla(354, 90%, 60%, 0.1);
+    background: hsla(350, 89%, 60%, 0.1);
   }
 
   .delete-resp-btn .material-symbols-rounded {
@@ -560,9 +580,9 @@
     border-radius: var(--radius-sm);
   }
 
-  .stat-badge.ok { background: hsla(172, 90%, 43%, 0.15); color: var(--color-ok); }
-  .stat-badge.maybe { background: hsla(42, 100%, 55%, 0.15); color: var(--color-maybe); }
-  .stat-badge.ng { background: hsla(354, 90%, 60%, 0.15); color: var(--color-ng); }
+  .stat-badge.ok { background: hsla(150, 84%, 37%, 0.15); color: var(--color-ok); }
+  .stat-badge.maybe { background: hsla(38, 92%, 50%, 0.15); color: var(--color-maybe); }
+  .stat-badge.ng { background: hsla(350, 89%, 60%, 0.15); color: var(--color-ng); }
 
   .comment-row td {
     border-bottom: none;
@@ -652,19 +672,19 @@
 
   .btn-status-choice.active-ok.active {
     background-color: var(--color-ok);
-    color: #0c2020;
+    color: #fff;
     border-color: var(--color-ok);
   }
 
   .btn-status-choice.active-maybe.active {
     background-color: var(--color-maybe);
-    color: #1a1505;
+    color: #fff;
     border-color: var(--color-maybe);
   }
 
   .btn-status-choice.active-ng.active {
     background-color: var(--color-ng);
-    color: #200508;
+    color: #fff;
     border-color: var(--color-ng);
   }
 

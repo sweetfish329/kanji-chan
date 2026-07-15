@@ -2,6 +2,11 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
+  import dayjs from 'dayjs';
+  import 'dayjs/locale/ja';
+  import { toast } from '@zerodevx/svelte-toast';
+
+  dayjs.locale('ja');
 
   interface CandidateAnswer {
     candidate_id: number;
@@ -120,8 +125,14 @@
       if (data.suggestions && data.suggestions.length > 0) {
         selectedCandidateId = data.suggestions[0].candidate_id;
       }
+      toast.push('AIの予定推薦が完了しました！');
     } catch (err: any) {
-      alert('AI推薦に失敗しました: ' + err.message);
+      toast.push('AI推薦に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     } finally {
       isAnalyzing = false;
     }
@@ -130,7 +141,12 @@
   // 日程の確定
   async function confirmSchedule() {
     if (!selectedCandidateId) {
-      alert('確定する日程を選択してください');
+      toast.push('確定する日程を選択してください', {
+        theme: {
+          '--toastBackground': 'var(--color-maybe)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
       return;
     }
 
@@ -141,9 +157,14 @@
         confirmed_candidate_id: selectedCandidateId
       });
       event = updated;
-      alert('日程を確定しました！参加者に共有されます。');
+      toast.push('日程を確定しました！参加者に共有されます。');
     } catch (err: any) {
-      alert('日程の確定に失敗しました: ' + err.message);
+      toast.push('日程の確定に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     } finally {
       submitting = false;
     }
@@ -163,9 +184,14 @@
       });
       event = updated;
       selectedCandidateId = null;
-      alert('調整中に戻しました。');
+      toast.push('調整中に戻しました。');
     } catch (err: any) {
-      alert('解除に失敗しました: ' + err.message);
+      toast.push('解除に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     } finally {
       submitting = false;
     }
@@ -179,17 +205,21 @@
     
     try {
       await api.delete(`/events/${eventId}/responses/${responseId}`);
-      alert('回答を削除しました');
+      toast.push('回答を削除しました');
       await loadEvent();
     } catch (err: any) {
-      alert('回答の削除に失敗しました: ' + err.message);
+      toast.push('回答の削除に失敗しました: ' + err.message, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     }
   }
 
   function formatDateTime(dateStr: string, startStr: string, endStr: string): string {
-    const d = new Date(dateStr);
-    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-    const formattedDate = `${d.getMonth() + 1}/${d.getDate()}(${dayNames[d.getDay()]})`;
+    const d = dayjs(dateStr);
+    const formattedDate = d.format('M/D(ddd)');
     return `${formattedDate} ${startStr.slice(0, 5)}〜${endStr.slice(0, 5)}`;
   }
 </script>
@@ -253,7 +283,7 @@
               <tbody>
                 {#each event.candidates as cand}
                   <tr class:confirmed-row={event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}>
-                    <td class="td-datetime">
+                    <td class="td-datetime font-mono">
                       {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
                       {#if event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}
                         <span class="conf-label">確定</span>
@@ -289,7 +319,7 @@
       <!-- Right side: AI helper and final confirmation -->
       <div class="ai-helper-column">
         <!-- AI suggest request form -->
-        <div class="glass-panel ai-panel">
+        <div class="ai-aurora-card ai-panel animate-fade-in">
           <div class="ai-panel-header">
             <span class="material-symbols-rounded ai-icon">psychology</span>
             <h3>AI日程選定アシスタント</h3>
@@ -350,7 +380,7 @@
                         <span class="rank-badge">第 {sug.rank} 候補</span>
                         <span class="score-badge">スコア: {sug.score}</span>
                       </div>
-                      <h5>{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
+                      <h5 class="font-mono">{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
                       <p class="sug-reason">{sug.reason}</p>
                     </div>
                   {/if}
@@ -374,7 +404,7 @@
               <span class="material-symbols-rounded ok-check">check_circle</span>
               <div>
                 <p>確定済み日程</p>
-                <h4>{formatDateTime(event.confirmed_candidate.event_date, event.confirmed_candidate.start_time, event.confirmed_candidate.end_time)}</h4>
+                <h4 class="font-mono">{formatDateTime(event.confirmed_candidate.event_date, event.confirmed_candidate.start_time, event.confirmed_candidate.end_time)}</h4>
               </div>
             </div>
             <button 
@@ -502,7 +532,7 @@
 
   .btn-del-resp:hover {
     color: var(--color-ng);
-    background: hsla(354, 90%, 60%, 0.1);
+    background: hsla(350, 89%, 60%, 0.1);
   }
 
   .btn-del-resp .material-symbols-rounded {
@@ -518,7 +548,7 @@
 
   .conf-label {
     background: var(--color-ok);
-    color: #0c2020;
+    color: #fff;
     font-size: 0.65rem;
     font-weight: 800;
     padding: 0.15rem 0.35rem;
@@ -526,7 +556,7 @@
   }
 
   .confirmed-row {
-    background: hsla(172, 90%, 43%, 0.04);
+    background: hsla(150, 84%, 37%, 0.04);
   }
 
   .td-status {
@@ -554,9 +584,9 @@
     font-weight: 600;
   }
 
-  .stat.ok { background: hsla(172, 90%, 43%, 0.12); color: var(--color-ok); }
-  .stat.maybe { background: hsla(42, 100%, 55%, 0.12); color: var(--color-maybe); }
-  .stat.ng { background: hsla(354, 90%, 60%, 0.12); color: var(--color-ng); }
+  .stat.ok { background: hsla(150, 84%, 37%, 0.12); color: var(--color-ok); }
+  .stat.maybe { background: hsla(38, 92%, 50%, 0.12); color: var(--color-maybe); }
+  .stat.ng { background: hsla(350, 89%, 60%, 0.12); color: var(--color-ng); }
 
   /* AI Panel */
   .ai-panel-header {
@@ -708,7 +738,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    background: hsla(172, 90%, 43%, 0.1);
+    background: hsla(150, 84%, 37%, 0.1);
     border: 1px solid var(--color-ok);
     padding: 1.25rem;
     border-radius: var(--radius-sm);

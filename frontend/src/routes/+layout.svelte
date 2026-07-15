@@ -2,6 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { SvelteToast } from '@zerodevx/svelte-toast';
 
   // Svelte 5 Runes for Global Auth State
   interface User {
@@ -14,8 +15,6 @@
   let user = $state<User | null>(null);
   let loading = $state(true);
 
-  // グローバルにユーザー情報を公開・更新できるように、コンテキストに入れるか
-  // シンプルに layout 内でマウント時に取得する
   onMount(async () => {
     try {
       const data = await api.get<User>('/auth/me');
@@ -37,7 +36,6 @@
     }
   }
 
-  // 子コンポーネントが props として受け取れるように Svelte 5 の $props() を使用
   let { children } = $props();
 </script>
 
@@ -65,6 +63,8 @@
     </nav>
   </div>
 </header>
+
+<SvelteToast />
 
 <main>
   {@render children()}
