@@ -101,51 +101,52 @@ h1, h2, h3, h4, h5, h6 {
 /* AI Recommendation Panel Aurora Effect (Signature Element) */
 .ai-aurora-card {
   position: relative;
-  background: var(--bg-glass);
-  backdrop-filter: blur(25px);
-  -webkit-backdrop-filter: blur(25px);
   border-radius: var(--radius-md);
   padding: 2rem;
-  box-shadow: var(--shadow-lg), var(--shadow-inset);
+  box-shadow: var(--shadow-lg);
   z-index: 1;
   overflow: hidden;
+  background: transparent;
 }
 
+/* 枠線用の回転グラデーション (Composite-only) */
 .ai-aurora-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  border-radius: var(--radius-md);
-  padding: 1.5px; /* Subtle thin border */
-  background: linear-gradient(90deg, #00f2fe, #4facfe, #8a2387, #e94057, #f27121, #00f2fe);
-  background-size: 300% 300%;
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  animation: aurora-border 10s linear infinite;
-  pointer-events: none;
-}
-
-@keyframes aurora-border {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.ai-aurora-card::after {
   content: '';
   position: absolute;
   top: -50%;
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(0, 242, 254, 0.06) 0%, rgba(79, 70, 229, 0.02) 50%, transparent 100%);
+  background: conic-gradient(from 0deg, #00f2fe, #4facfe, #8a2387, #e94057, #f27121, #00f2fe);
+  animation: aurora-border 12s linear infinite;
+  pointer-events: none;
+  z-index: -2;
+}
+
+@keyframes aurora-border {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 遮蔽ガラスインナーカバー */
+.ai-aurora-card::after {
+  content: '';
+  position: absolute;
+  top: 1.5px;
+  left: 1.5px;
+  right: 1.5px;
+  bottom: 1.5px;
+  border-radius: calc(var(--radius-md) - 1.5px);
+  /* ガラスのベース背景 + 発光用の滲みグラデーションを多重配置 */
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(0, 242, 254, 0.08) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(79, 70, 229, 0.04) 0%, transparent 60%),
+    var(--bg-glass);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  box-shadow: var(--shadow-inset);
   z-index: -1;
   pointer-events: none;
-  animation: aurora-glow 15s ease infinite alternate;
 }
 
 @keyframes aurora-glow {
