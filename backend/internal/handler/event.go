@@ -40,7 +40,7 @@ func HandleCreateEvent(c *echo.Context) error {
 	// トランザクションで作成
 	tx := database.DB.Begin()
 
-	eventID := uuid.New()
+	eventID := uuid.New().String()
 	event := model.Event{
 		ID:          eventID,
 		Title:       req.Title,
@@ -100,19 +100,18 @@ func HandleGetEvent(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
 
-	eventID, err := uuid.Parse(eventIDStr)
-	if err != nil {
+	if _, err := uuid.Parse(eventIDStr); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
 	// Candidates と Responses (とその中の Answers) を一括プリロード
-	err = database.DB.
+	err := database.DB.
 		Preload("Candidates").
 		Preload("Responses").
 		Preload("Responses.Answers").
 		Preload("ConfirmedCandidate").
-		First(&event, "id = ?", eventID).Error
+		First(&event, "id = ?", eventIDStr).Error
 
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
@@ -132,13 +131,12 @@ func HandleUpdateEvent(c *echo.Context) error {
 	if eventIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
-	eventID, err := uuid.Parse(eventIDStr)
-	if err != nil {
+	if _, err := uuid.Parse(eventIDStr); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
-	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
+	if err := database.DB.First(&event, "id = ?", eventIDStr).Error; err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
@@ -172,7 +170,7 @@ func HandleUpdateEvent(c *echo.Context) error {
 	}
 
 	// 更新後の状態を取得
-	database.DB.Preload("Candidates").Preload("ConfirmedCandidate").First(&event, "id = ?", eventID)
+	database.DB.Preload("Candidates").Preload("ConfirmedCandidate").First(&event, "id = ?", eventIDStr)
 	return c.JSON(http.StatusOK, event)
 }
 
@@ -187,13 +185,12 @@ func HandleDeleteEvent(c *echo.Context) error {
 	if eventIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
-	eventID, err := uuid.Parse(eventIDStr)
-	if err != nil {
+	if _, err := uuid.Parse(eventIDStr); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
-	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
+	if err := database.DB.First(&event, "id = ?", eventIDStr).Error; err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 

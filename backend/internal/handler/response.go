@@ -39,14 +39,13 @@ func HandleAddResponse(c *echo.Context) error {
 	if eventIDStr == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
-	eventID, err := uuid.Parse(eventIDStr)
-	if err != nil {
+	if _, err := uuid.Parse(eventIDStr); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	// イベント存在チェック
 	var event model.Event
-	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
+	if err := database.DB.First(&event, "id = ?", eventIDStr).Error; err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
@@ -66,7 +65,7 @@ func HandleAddResponse(c *echo.Context) error {
 	tx := database.DB.Begin()
 
 	response := model.Response{
-		EventID:        eventID,
+		EventID:        eventIDStr,
 		RespondentName: req.RespondentName,
 		Comment:        req.Comment,
 		EditToken:      editToken,

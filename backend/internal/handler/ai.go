@@ -57,18 +57,17 @@ func HandleSuggestSchedule(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
-	eventID, err := uuid.Parse(req.EventID)
-	if err != nil {
+	if _, err := uuid.Parse(req.EventID); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid event UUID format")
 	}
 
 	// イベントデータの取得 (Candidates, Responses と Answers をすべてロード)
 	var event model.Event
-	err = database.DB.
+	err := database.DB.
 		Preload("Candidates").
 		Preload("Responses").
 		Preload("Responses.Answers").
-		First(&event, "id = ?", eventID).Error
+		First(&event, "id = ?", req.EventID).Error
 
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
