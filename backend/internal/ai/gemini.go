@@ -7,9 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/google/generative-ai-go/genai"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
-	"google.golang.org/api/option"
+	"google.golang.org/adk/v2/agent"
+	"google.golang.org/adk/v2/agent/llmagent"
+	"google.golang.org/adk/v2/model/gemini"
+	"google.golang.org/adk/v2/runner"
+	"google.golang.org/adk/v2/session"
+	"google.golang.org/genai"
 )
 
 const (
@@ -42,15 +46,15 @@ func ParseEvent(ctx context.Context, text string, user *model.User) (*ParsedEven
 		return nil, fmt.Errorf("Gemini API key is not configured")
 	}
 
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	// 1. モデルの初期化
+	modelClient, err := gemini.NewModel(ctx, geminiModelName, &genai.ClientConfig{
+		APIKey: apiKey,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+		return nil, fmt.Errorf("failed to create Gemini model: %w", err)
 	}
-	defer client.Close()
 
-	model := client.GenerativeModel(geminiModelName)
-
-	// Go SDK の Schema 構築
+	// 2. スキーマ構築
 	eventSchema := &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -84,27 +88,57 @@ Note:
 - Default to 2 hours duration if not specified.
 - Generate at least 2-4 candidate slots as requested or reasonable.`, currentTime)
 
-	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
-	model.ResponseMIMEType = "application/json"
-	model.ResponseSchema = eventSchema
-
-	resp, err := model.GenerateContent(ctx, genai.Text(text))
+	// 3. エージェントの初期化
+	eventAgent, err := llmagent.New(llmagent.Config{
+		Name:        "event_parser_agent",
+		Model:       modelClient,
+		Description: "Parses natural language queries into event candidates.",
+		Instruction: systemPrompt,
+		GenerateContentConfig: &genai.GenerateContentConfig{
+			ResponseMIMEType: "application/json",
+			ResponseSchema:   eventSchema,
+		},
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate content: %w", err)
+		return nil, fmt.Errorf("failed to create LLM Agent: %w", err)
 	}
 
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return nil, fmt.Errorf("empty response from Gemini API")
+	// 4. ランナーの初期化と実行
+	sessionService := session.InMemoryService()
+	r, err := runner.New(runner.Config{
+		Agent:             eventAgent,
+		SessionService:    sessionService,
+		AutoCreateSession: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create runner: %w", err)
 	}
 
-	respPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
-	if !ok {
-		return nil, fmt.Errorf("unexpected response part type")
+	inputMsg := genai.NewContentFromText(text, genai.RoleUser)
+	events := r.Run(ctx, "organizer", "parse-session", inputMsg, agent.RunConfig{})
+
+	var responseText string
+	for ev, err := range events {
+		if err != nil {
+			return nil, fmt.Errorf("runner execution error: %w", err)
+		}
+		if ev.Content != nil && len(ev.Content.Parts) > 0 {
+			for _, part := range ev.Content.Parts {
+				if part.Text != "" {
+					responseText = part.Text
+					break
+				}
+			}
+		}
+	}
+
+	if responseText == "" {
+		return nil, fmt.Errorf("empty response from ADK agent")
 	}
 
 	var parsed ParsedEventResponse
-	if err := json.Unmarshal([]byte(respPart), &parsed); err != nil {
-		return nil, fmt.Errorf("failed to parse AI response: %w (raw: %s)", err, string(respPart))
+	if err := json.Unmarshal([]byte(responseText), &parsed); err != nil {
+		return nil, fmt.Errorf("failed to parse AI response: %w (raw: %s)", err, responseText)
 	}
 
 	return &parsed, nil
@@ -131,13 +165,13 @@ func SuggestSchedule(ctx context.Context, event *model.Event, preferences string
 		return nil, fmt.Errorf("Gemini API key is not configured")
 	}
 
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	// 1. モデルの初期化
+	modelClient, err := gemini.NewModel(ctx, geminiModelName, &genai.ClientConfig{
+		APIKey: apiKey,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
+		return nil, fmt.Errorf("failed to create Gemini model: %w", err)
 	}
-	defer client.Close()
-
-	model := client.GenerativeModel(geminiModelName)
 
 	// イベント、候補日、回答データをプロンプト用に整形
 	eventDataJSON, err := json.MarshalIndent(event, "", "  ")
@@ -145,7 +179,7 @@ func SuggestSchedule(ctx context.Context, event *model.Event, preferences string
 		return nil, err
 	}
 
-	// Go SDK の Schema 構築
+	// 2. スキーマ構築
 	suggestionSchema := &genai.Schema{
 		Type: genai.TypeObject,
 		Properties: map[string]*genai.Schema{
@@ -177,28 +211,58 @@ Your task:
 4. Provide a detailed explanation for each rank (who cannot attend, pros/cons).
 5. Write the response in Japanese.`
 
-	model.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
-	model.ResponseMIMEType = "application/json"
-	model.ResponseSchema = suggestionSchema
+	// 3. エージェントの初期化
+	suggestAgent, err := llmagent.New(llmagent.Config{
+		Name:        "scheduler_assistant_agent",
+		Model:       modelClient,
+		Description: "Analyzes schedule responses and coordinates the best slot.",
+		Instruction: systemPrompt,
+		GenerateContentConfig: &genai.GenerateContentConfig{
+			ResponseMIMEType: "application/json",
+			ResponseSchema:   suggestionSchema,
+		},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create LLM Agent: %w", err)
+	}
+
+	// 4. ランナーの初期化と実行
+	sessionService := session.InMemoryService()
+	r, err := runner.New(runner.Config{
+		Agent:             suggestAgent,
+		SessionService:    sessionService,
+		AutoCreateSession: true,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create runner: %w", err)
+	}
 
 	promptText := fmt.Sprintf("Organizer Preferences: %s\n\nEvent Responses: %s", preferences, string(eventDataJSON))
-	resp, err := model.GenerateContent(ctx, genai.Text(promptText))
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate content: %w", err)
+	inputMsg := genai.NewContentFromText(promptText, genai.RoleUser)
+	events := r.Run(ctx, "organizer", "suggest-session", inputMsg, agent.RunConfig{})
+
+	var responseText string
+	for ev, err := range events {
+		if err != nil {
+			return nil, fmt.Errorf("runner execution error: %w", err)
+		}
+		if ev.Content != nil && len(ev.Content.Parts) > 0 {
+			for _, part := range ev.Content.Parts {
+				if part.Text != "" {
+					responseText = part.Text
+					break
+				}
+			}
+		}
 	}
 
-	if len(resp.Candidates) == 0 || len(resp.Candidates[0].Content.Parts) == 0 {
-		return nil, fmt.Errorf("empty response from Gemini API")
-	}
-
-	respPart, ok := resp.Candidates[0].Content.Parts[0].(genai.Text)
-	if !ok {
-		return nil, fmt.Errorf("unexpected response part type")
+	if responseText == "" {
+		return nil, fmt.Errorf("empty response from ADK agent")
 	}
 
 	var suggestions AISuggestionResponse
-	if err := json.Unmarshal([]byte(respPart), &suggestions); err != nil {
-		return nil, fmt.Errorf("failed to parse AI suggestions: %w (raw: %s)", err, string(respPart))
+	if err := json.Unmarshal([]byte(responseText), &suggestions); err != nil {
+		return nil, fmt.Errorf("failed to parse AI suggestions: %w (raw: %s)", err, responseText)
 	}
 
 	return &suggestions, nil
