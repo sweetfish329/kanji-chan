@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { toast } from '@zerodevx/svelte-toast';
 
   interface User {
     id: number;
@@ -71,9 +72,16 @@
     try {
       await api.post('/auth/apikey', { gemini_api_key: apiKeyInput });
       apiKeyUpdateSuccess = 'APIキーを正常に更新しました！';
+      toast.push('APIキーを設定しました！');
       setTimeout(() => apiKeyUpdateSuccess = '', 3000);
-    } catch (err: any) {
-      alert('APIキーの更新に失敗しました: ' + err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '予期せぬエラーが発生しました';
+      toast.push('APIキーの更新に失敗しました: ' + msg, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     }
   }
 
@@ -94,8 +102,16 @@
       parsedTitle = result.title;
       parsedDescription = result.description;
       parsedCandidates = result.candidates;
-    } catch (err: any) {
-      parseError = err.message || '解析に失敗しました。APIキーが設定されているか確認してください。';
+      toast.push('自然文の解析が完了しました！');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '解析に失敗しました。';
+      parseError = msg + ' APIキーが設定されているか確認してください。';
+      toast.push('解析に失敗しました', {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     } finally {
       isParsing = false;
     }
@@ -126,12 +142,22 @@
     const candidates = type === 'ai' ? parsedCandidates : manualCandidates;
 
     if (!title.trim()) {
-      alert('イベントのタイトルを入力してください');
+      toast.push('イベントのタイトルを入力してください', {
+        theme: {
+          '--toastBackground': 'var(--color-maybe)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
       return;
     }
 
     if (candidates.length === 0 || candidates.some(c => !c.event_date)) {
-      alert('候補日を正しく設定してください（日付の入力は必須です）');
+      toast.push('候補日を正しく設定してください（日付の入力は必須です）', {
+        theme: {
+          '--toastBackground': 'var(--color-maybe)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
       return;
     }
 
@@ -146,8 +172,7 @@
       events = [created, ...events];
       activeTab = 'list';
       
-      // 作成できたイベントの詳細画面（管理側）に飛ばすことも可能
-      alert(`イベント「${created.title}」を作成しました！回答用のURLを共有してください。`);
+      toast.push(`イベント「${created.title}」を作成しました！`);
       
       // 入力値のクリア
       if (type === 'ai') {
@@ -160,8 +185,14 @@
         manualDescription = '';
         manualCandidates = [{ event_date: '', start_time: '19:00', end_time: '21:00' }];
       }
-    } catch (err: any) {
-      alert('イベントの作成に失敗しました: ' + err.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '作成に失敗しました。';
+      toast.push('イベントの作成に失敗しました: ' + msg, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
     }
   }
 </script>

@@ -21,7 +21,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!response.ok) {
     let errorMessage = 'Something went wrong';
     try {
-      const errData = await response.json();
+      const errData = await response.json() as { error?: string };
       errorMessage = errData.error || errorMessage;
     } catch {
       // JSONではないエラーレスポンスの場合
@@ -40,9 +40,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   get: <T>(path: string, options?: RequestInit) => request<T>(path, { ...options, method: 'GET' }),
-  post: <T>(path: string, body: any, options?: RequestInit) => 
+  post: <T>(path: string, body: unknown, options?: RequestInit) => 
     request<T>(path, { ...options, method: 'POST', body: JSON.stringify(body) }),
-  put: <T>(path: string, body: any, options?: RequestInit) => 
+  put: <T>(path: string, body: unknown, options?: RequestInit) => 
     request<T>(path, { ...options, method: 'PUT', body: JSON.stringify(body) }),
   delete: <T>(path: string, options?: RequestInit) => request<T>(path, { ...options, method: 'DELETE' }),
 };
