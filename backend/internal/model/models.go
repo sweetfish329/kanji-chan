@@ -49,6 +49,7 @@ type Response struct {
 	EventID        uuid.UUID         `gorm:"type:uuid;not null;index" json:"event_id"`
 	RespondentName string            `gorm:"type:varchar(255);not null" json:"respondent_name"`
 	Comment        string            `gorm:"type:text" json:"comment"`
+	EditToken      string            `gorm:"type:varchar(255);not null" json:"edit_token"`
 	CreatedAt      time.Time         `json:"created_at"`
 	Answers        []CandidateAnswer `gorm:"foreignKey:ResponseID;constraint:OnDelete:CASCADE" json:"answers"`
 }

@@ -44,7 +44,7 @@ func main() {
 			return true, nil
 		},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization},
+		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization, "X-Response-Token"},
 		AllowCredentials: true,
 	}))
 
@@ -62,6 +62,7 @@ func main() {
 	// イベント詳細・回答登録 (パブリック)
 	e.GET("/api/events/:id", handler.HandleGetEvent)
 	e.POST("/api/events/:id/responses", handler.HandleAddResponse)
+	e.PUT("/api/events/:id/responses/:response_id", handler.HandleUpdateResponse)
 	e.DELETE("/api/events/:id/responses/:response_id", handler.HandleDeleteResponse)
 
 	// 認証が必要なプライベートグループ

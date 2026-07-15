@@ -20,6 +20,7 @@
     comment: string;
     created_at: string;
     answers: CandidateAnswer[];
+    edit_token?: string; // 新規登録時に返却される
   }
 
   interface EventCandidate {
@@ -54,6 +55,28 @@
   let myAnswers = $state<Record<number, 'ok' | 'maybe' | 'ng'>>({});
   let submitting = $state(false);
 
+  // Edit Mode states (Passwordless response updates)
+  let isEditing = $state(false);
+  let editingResponseId = $state<number | null>(null);
+  let responseTokens = $state<Record<number, string>>({}); // { responseId: editToken }
+
+  // Load Stored Tokens on Mount
+  onMount(() => {
+    loadEvent();
+    const stored = localStorage.getItem('kanji_chan_response_tokens');
+    if (stored) {
+      try {
+        responseTokens = JSON.parse(stored);
+      } catch {
+        responseTokens = {};
+      }
+    }
+  });
+
+  function hasEditPermission(responseId: number): boolean {
+    return !!responseTokens[responseId];
+  }
+
   // Load Event Details
   async function loadEvent() {
     try {
@@ -66,16 +89,13 @@
         initialAnswers[cand.id] = 'ok';
       });
       myAnswers = initialAnswers;
-    } catch (err: any) {
-      errorMsg = err.message || 'イベントの読み込みに失敗しました。URLが正しいか確認してください。';
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'イベントの読み込みに失敗しました。';
+      errorMsg = msg + ' URLが正しいか確認してください。';
     } finally {
       loading = false;
     }
   }
-
-  onMount(() => {
-    loadEvent();
-  });
 
   // Derived state: 候補日ごとの〇△×の集計 (Svelte 5 Runes)
   let candidateStats = $derived.by(() => {
@@ -115,6 +135,41 @@
     };
   }
 
+  function startEdit(resp: Response) {
+    isEditing = true;
+    editingResponseId = resp.id;
+    respondentName = resp.respondent_name;
+    comment = resp.comment;
+
+    // 既存回答の読み込み
+    const initialAnswers: Record<number, 'ok' | 'maybe' | 'ng'> = {};
+    event?.candidates.forEach(cand => {
+      initialAnswers[cand.id] = 'ok'; // fallback
+    });
+    resp.answers.forEach(ans => {
+      initialAnswers[ans.candidate_id] = ans.answer_status;
+    });
+    myAnswers = initialAnswers;
+
+    // フォームへスクロール
+    const formEl = document.querySelector('.input-form-card');
+    if (formEl) {
+      formEl.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  function cancelEdit() {
+    isEditing = false;
+    editingResponseId = null;
+    respondentName = '';
+    comment = '';
+    const initialAnswers: Record<number, 'ok' | 'maybe' | 'ng'> = {};
+    event?.candidates.forEach(cand => {
+      initialAnswers[cand.id] = 'ok';
+    });
+    myAnswers = initialAnswers;
+  }
+
   async function submitResponse(e: SubmitEvent) {
     e.preventDefault();
     if (!respondentName.trim()) {
@@ -128,30 +183,56 @@
     }
 
     submitting = true;
-    
-    // リクエスト用に配列化
     const answersArray = Object.entries(myAnswers).map(([candId, status]) => ({
       candidate_id: Number(candId),
       answer_status: status
     }));
 
     try {
-      await api.post(`/events/${eventId}/responses`, {
-        respondent_name: respondentName,
-        comment,
-        answers: answersArray
-      });
+      if (isEditing && editingResponseId !== null) {
+        // 編集・更新リクエスト
+        const token = responseTokens[editingResponseId];
+        await api.put<Response>(
+          `/events/${eventId}/responses/${editingResponseId}`,
+          {
+            respondent_name: respondentName,
+            comment,
+            answers: answersArray
+          },
+          {
+            headers: { 'X-Response-Token': token }
+          }
+        );
 
-      toast.push('回答を登録しました！');
-      
-      // フォームのクリア
-      respondentName = '';
-      comment = '';
-      
-      // 再ロード
+        toast.push('回答を更新しました！');
+        cancelEdit();
+      } else {
+        // 新規回答登録
+        const created = await api.post<Response>(`/events/${eventId}/responses`, {
+          respondent_name: respondentName,
+          comment,
+          answers: answersArray
+        });
+
+        toast.push('回答を登録しました！');
+
+        // レスポンスから返却された edit_token を LocalStorage に保存
+        if (created.id && created.edit_token) {
+          responseTokens = {
+            ...responseTokens,
+            [created.id]: created.edit_token
+          };
+          localStorage.setItem('kanji_chan_response_tokens', JSON.stringify(responseTokens));
+        }
+
+        respondentName = '';
+        comment = '';
+      }
+
       await loadEvent();
-    } catch (err: any) {
-      toast.push('回答の登録に失敗しました: ' + err.message, {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '回答の送信に失敗しました。';
+      toast.push('送信に失敗しました: ' + msg, {
         theme: {
           '--toastBackground': 'var(--color-ng)',
           '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
@@ -168,11 +249,24 @@
     }
     
     try {
-      await api.delete(`/events/${eventId}/responses/${responseId}`);
+      const token = responseTokens[responseId];
+      const headers = token ? { 'X-Response-Token': token } : undefined;
+      
+      await api.delete(`/events/${eventId}/responses/${responseId}`, { headers });
       toast.push('回答を削除しました');
+      
+      // 保存トークンをクリーンアップ
+      if (responseTokens[responseId]) {
+        const nextTokens = { ...responseTokens };
+        delete nextTokens[responseId];
+        responseTokens = nextTokens;
+        localStorage.setItem('kanji_chan_response_tokens', JSON.stringify(responseTokens));
+      }
+
       await loadEvent();
-    } catch (err: any) {
-      toast.push('回答の削除に失敗しました: ' + err.message, {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '削除に失敗しました。';
+      toast.push('回答の削除に失敗しました: ' + msg, {
         theme: {
           '--toastBackground': 'var(--color-ng)',
           '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
@@ -254,13 +348,24 @@
                 <th>
                   <div class="respondent-header">
                     <span class="respondent-name">{resp.respondent_name}</span>
-                    <button 
-                      class="delete-resp-btn" 
-                      title="回答を削除"
-                      onclick={() => deleteResponse(resp.id, resp.respondent_name)}
-                    >
-                      <span class="material-symbols-rounded">close</span>
-                    </button>
+                    <div class="header-action-group">
+                      {#if hasEditPermission(resp.id)}
+                        <button 
+                          class="edit-resp-btn" 
+                          title="回答を編集"
+                          onclick={() => startEdit(resp)}
+                        >
+                          <span class="material-symbols-rounded">edit</span>
+                        </button>
+                        <button 
+                          class="delete-resp-btn" 
+                          title="回答を削除"
+                          onclick={() => deleteResponse(resp.id, resp.respondent_name)}
+                        >
+                          <span class="material-symbols-rounded">close</span>
+                        </button>
+                      {/if}
+                    </div>
                   </div>
                 </th>
               {/each}
@@ -326,7 +431,9 @@
     <!-- Response Input Form -->
     {#if event.status !== 'confirmed'}
       <div class="input-form-card glass-panel">
-        <h3 class="section-subtitle">日程を回答する</h3>
+        <h3 class="section-subtitle">
+          {isEditing ? 'あなたの回答を編集する' : '日程を回答する'}
+        </h3>
         
         <form onsubmit={submitResponse}>
           <div class="form-grid">
@@ -378,10 +485,17 @@
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-lg submit-resp-btn" disabled={submitting}>
-            <span class="material-symbols-rounded">save</span>
-            {submitting ? '送信中...' : 'この内容で回答を登録する'}
-          </button>
+          <div class="form-actions-row">
+            <button type="submit" class="btn btn-primary btn-lg submit-resp-btn" disabled={submitting}>
+              <span class="material-symbols-rounded">save</span>
+              {submitting ? '送信中...' : isEditing ? '回答を更新する' : 'この内容で回答を登録する'}
+            </button>
+            {#if isEditing}
+              <button type="button" class="btn btn-secondary btn-lg cancel-edit-btn" onclick={cancelEdit}>
+                キャンセル
+              </button>
+            {/if}
+          </div>
         </form>
       </div>
     {/if}
@@ -525,15 +639,25 @@
     font-weight: 600;
   }
 
-  .delete-resp-btn {
+  .header-action-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .edit-resp-btn, .delete-resp-btn {
     background: transparent;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
     display: flex;
-    padding: 0.1rem;
+    padding: 0.2rem;
     border-radius: var(--radius-full);
     transition: all var(--transition-fast);
+  }
+
+  .edit-resp-btn:hover {
+    color: var(--color-primary);
+    background: hsla(263, 90%, 65%, 0.1);
   }
 
   .delete-resp-btn:hover {
@@ -541,6 +665,7 @@
     background: hsla(350, 89%, 60%, 0.1);
   }
 
+  .edit-resp-btn .material-symbols-rounded,
   .delete-resp-btn .material-symbols-rounded {
     font-size: 0.95rem;
   }
@@ -688,8 +813,18 @@
     border-color: var(--color-ng);
   }
 
-  .submit-resp-btn {
+  .form-actions-row {
+    display: flex;
+    gap: 1rem;
     width: 100%;
+  }
+
+  .submit-resp-btn {
+    flex: 1;
+  }
+
+  .cancel-edit-btn {
+    flex: 0.3;
   }
 
   .form-grid {
@@ -701,6 +836,9 @@
   @media (max-width: 600px) {
     .form-grid {
       grid-template-columns: 1fr;
+    }
+    .form-actions-row {
+      flex-direction: column;
     }
   }
 
