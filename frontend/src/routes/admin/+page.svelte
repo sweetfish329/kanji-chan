@@ -30,6 +30,8 @@
   let activeTab = $state<'list' | 'create-ai' | 'create-manual' | 'settings'>('list');
   let loading = $state(true);
 
+  const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
+
   // API Key state
   let apiKeyInput = $state('');
   let apiKeyUpdateSuccess = $state('');
@@ -61,7 +63,7 @@
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       // 未ログインの場合はログインへ誘導
-      window.location.href = 'http://localhost:8080/api/auth/login';
+      window.location.href = `${apiBaseUrl}/api/auth/login`;
     } finally {
       loading = false;
     }
@@ -577,13 +579,13 @@
   }
 
   .sidebar-btn:hover {
-    background: hsla(223, 40%, 18%, 0.5);
+    background: var(--bg-secondary);
     color: var(--text-primary);
   }
 
   .sidebar-btn.active {
-    background: var(--gradient-brand);
-    color: #fff;
+    background: var(--color-accent);
+    color: #FAF8F5;
   }
 
   .sidebar-btn .material-symbols-rounded {
@@ -607,9 +609,10 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem;
-    background: hsla(223, 40%, 14%, 0.3);
-    border-color: hsla(217, 20%, 80%, 0.05);
+    padding: 1.8rem 2rem;
+    background: #FAF8F5;
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
   }
 
   @media (max-width: 600px) {
@@ -643,22 +646,25 @@
   }
 
   .status-badge {
-    padding: 0.25rem 0.6rem;
+    padding: 0.35rem 0.8rem;
     border-radius: var(--radius-full);
-    background: hsla(42, 100%, 55%, 0.15);
+    background: rgba(208, 169, 126, 0.08);
     color: var(--color-maybe);
     border: 1px solid var(--color-maybe);
     font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.03em;
   }
 
   .status-badge.confirmed {
-    background: hsla(172, 90%, 43%, 0.15);
+    background: rgba(94, 111, 98, 0.08);
     color: var(--color-ok);
     border-color: var(--color-ok);
   }
 
   .date-meta {
     color: var(--text-muted);
+    font-size: 0.85rem;
   }
 
   .event-actions {

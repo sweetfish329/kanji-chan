@@ -7,6 +7,8 @@
   import copy from 'copy-to-clipboard';
   import { toast } from '@zerodevx/svelte-toast';
 
+  import { reveal } from '$lib/reveal';
+
   dayjs.locale('ja');
 
   interface CandidateAnswer {
@@ -281,7 +283,7 @@
   }
 </script>
 
-<div class="container event-page-container animate-fade-in">
+<div class="container event-page-container" use:reveal>
   {#if loading}
     <div class="glass-panel loading-panel">
       <div class="spinner"></div>
@@ -296,7 +298,7 @@
     </div>
   {:else if event}
     <!-- Event Details Panel -->
-    <div class="event-header-card glass-panel">
+    <div class="event-header-card glass-panel" use:reveal>
       <div class="event-status-header">
         <span class="status-badge" class:confirmed={event.status === 'confirmed'}>
           {event.status === 'confirmed' ? '日程確定済み' : '日程調整中'}
@@ -306,7 +308,7 @@
       <p class="event-desc-text">{event.description || '説明はありません。'}</p>
       
       {#if event.status === 'confirmed' && event.confirmed_candidate}
-        <div class="confirmed-box glass-panel animate-fade-in">
+        <div class="confirmed-box glass-panel" use:reveal>
           <span class="material-symbols-rounded confirmed-icon">celebration</span>
           <div class="confirmed-info">
             <p class="confirmed-label">確定した日時</p>
@@ -335,7 +337,7 @@
     </div>
 
     <!-- Table of Answers Section -->
-    <div class="answers-table-section glass-panel">
+    <div class="answers-table-section glass-panel" use:reveal>
       <h3 class="section-subtitle">みんなの回答状況</h3>
       
       <div class="table-wrapper">
@@ -434,7 +436,7 @@
 
     <!-- Response Input Form -->
     {#if event.status !== 'confirmed'}
-      <div class="input-form-card glass-panel">
+      <div class="input-form-card glass-panel" use:reveal>
         <h3 class="section-subtitle">
           {isEditing ? 'あなたの回答を編集する' : '日程を回答する'}
         </h3>
@@ -575,7 +577,7 @@
 
   .copy-input-group input {
     flex: 1;
-    background: hsla(223, 40%, 6%, 0.8);
+    background: #FAF8F5;
   }
 
   /* Table styles */
@@ -597,11 +599,13 @@
   }
 
   .answers-table th {
-    background: hsla(223, 40%, 10%, 0.9);
-    font-family: var(--font-display);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     white-space: nowrap;
+    letter-spacing: 0.02em;
   }
 
   .sticky-col {
@@ -645,15 +649,15 @@
 
   /* My Response Highlights */
   .th-my-response {
-    background: hsla(263, 90%, 65%, 0.1) !important;
+    background: rgba(138, 116, 99, 0.08) !important;
     border-left: 1px dashed var(--color-primary);
     border-right: 1px dashed var(--color-primary);
   }
 
   .cell-my-response {
-    background: hsla(263, 90%, 65%, 0.03);
-    border-left: 1px dashed hsla(263, 90%, 65%, 0.2);
-    border-right: 1px dashed hsla(263, 90%, 65%, 0.2);
+    background: rgba(138, 116, 99, 0.03) !important;
+    border-left: 1px dashed rgba(138, 116, 99, 0.2);
+    border-right: 1px dashed rgba(138, 116, 99, 0.2);
   }
 
   .respondent-name-wrapper {
@@ -665,11 +669,11 @@
 
   .my-response-badge {
     font-size: 0.65rem;
-    background: var(--gradient-brand);
-    color: #fff;
-    padding: 0.1rem 0.4rem;
+    background: var(--color-primary);
+    color: #FAF8F5;
+    padding: 0.15rem 0.5rem;
     border-radius: var(--radius-full);
-    font-weight: 700;
+    font-weight: 600;
   }
 
   /* Edit & Delete Action Styles */
@@ -697,14 +701,14 @@
 
   .edit-resp-btn:hover {
     opacity: 1;
-    color: var(--color-primary);
-    background: hsla(263, 90%, 65%, 0.1);
+    color: var(--color-accent);
+    background: rgba(94, 111, 98, 0.08);
   }
 
   .delete-resp-btn:hover {
     opacity: 1;
     color: var(--color-ng);
-    background: hsla(350, 89%, 60%, 0.1);
+    background: rgba(194, 134, 127, 0.08);
   }
 
   .edit-resp-btn .material-symbols-rounded,
@@ -747,9 +751,9 @@
     border-radius: var(--radius-sm);
   }
 
-  .stat-badge.ok { background: hsla(150, 84%, 37%, 0.15); color: var(--color-ok); }
-  .stat-badge.maybe { background: hsla(38, 92%, 50%, 0.15); color: var(--color-maybe); }
-  .stat-badge.ng { background: hsla(350, 89%, 60%, 0.15); color: var(--color-ng); }
+  .stat-badge.ok { background: rgba(94, 111, 98, 0.08); color: var(--color-ok); }
+  .stat-badge.maybe { background: rgba(208, 169, 126, 0.08); color: var(--color-maybe); }
+  .stat-badge.ng { background: rgba(194, 134, 127, 0.08); color: var(--color-ng); }
 
   .comment-row td {
     border-bottom: none;
@@ -809,9 +813,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: hsla(223, 40%, 10%, 0.5);
+    background: #FAF8F5;
     border: 1px solid var(--border-glass);
-    padding: 0.75rem 1.5rem;
+    padding: 1rem 1.5rem;
     border-radius: var(--radius-sm);
   }
 
