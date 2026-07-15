@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
@@ -21,22 +21,19 @@ type CreateEventRequest struct {
 }
 
 // HandleCreateEvent 新規イベント作成 (幹事専用)
-func HandleCreateEvent(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleCreateEvent(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	var req CreateEventRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
 	if req.Title == "" {
-		writeError(w, http.StatusBadRequest, "Title is required")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Title is required")
 	}
 
 	// トランザクションで作成
@@ -53,8 +50,7 @@ func HandleCreateEvent(w http.ResponseWriter, r *http.Request) {
 
 	if err := tx.Create(&event).Error; err != nil {
 		tx.Rollback()
-		writeError(w, http.StatusInternalServerError, "Failed to create event: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create event: "+err.Error())
 	}
 
 	for _, cand := range req.Candidates {
@@ -66,52 +62,46 @@ func HandleCreateEvent(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := tx.Create(&candidate).Error; err != nil {
 			tx.Rollback()
-			writeError(w, http.StatusInternalServerError, "Failed to create event candidates: "+err.Error())
-			return
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create event candidates: "+err.Error())
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit transaction")
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to commit transaction")
 	}
 
 	// 作成したイベントをリレーション込みで再取得して返す
 	var createdEvent model.Event
 	database.DB.Preload("Candidates").First(&createdEvent, "id = ?", eventID)
-	writeJSON(w, http.StatusCreated, createdEvent)
+	return c.JSON(http.StatusCreated, createdEvent)
 }
 
 // HandleListEvents ログイン中の幹事が作成したイベント一覧を取得
-func HandleListEvents(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleListEvents(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	var events []model.Event
 	err := database.DB.Where("created_by = ?", claims.UserID).Order("created_at desc").Find(&events).Error
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch events: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch events: "+err.Error())
 	}
 
-	writeJSON(w, http.StatusOK, events)
+	return c.JSON(http.StatusOK, events)
 }
 
 // HandleGetEvent イベント詳細を取得 (回答状況・候補日含む、ログイン不要)
-func HandleGetEvent(w http.ResponseWriter, r *http.Request) {
-	eventIDStr := r.PathValue("id")
+func HandleGetEvent(c echo.Context) error {
+	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
-		writeError(w, http.StatusBadRequest, "Missing event ID")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
 
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid UUID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
@@ -124,42 +114,36 @@ func HandleGetEvent(w http.ResponseWriter, r *http.Request) {
 		First(&event, "id = ?", eventID).Error
 
 	if err != nil {
-		writeError(w, http.StatusNotFound, "Event not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
-	writeJSON(w, http.StatusOK, event)
+	return c.JSON(http.StatusOK, event)
 }
 
 // HandleUpdateEvent イベント情報の更新・確定 (幹事専用)
-func HandleUpdateEvent(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleUpdateEvent(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	eventIDStr := r.PathValue("id")
+	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
-		writeError(w, http.StatusBadRequest, "Missing event ID")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid UUID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
 	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "Event not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
 	// 権限チェック (作成者のみ)
 	if event.CreatedBy == nil || *event.CreatedBy != claims.UserID {
-		writeError(w, http.StatusForbidden, "Forbidden")
-		return
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
 	}
 
 	var req struct {
@@ -169,9 +153,8 @@ func HandleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 		ConfirmedCandidateID *uint  `json:"confirmed_candidate_id"`
 	}
 
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
 	if req.Title != "" {
@@ -184,49 +167,42 @@ func HandleUpdateEvent(w http.ResponseWriter, r *http.Request) {
 	event.ConfirmedCandidateID = req.ConfirmedCandidateID
 
 	if err := database.DB.Save(&event).Error; err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update event: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update event: "+err.Error())
 	}
 
 	// 更新後の状態を取得
 	database.DB.Preload("Candidates").Preload("ConfirmedCandidate").First(&event, "id = ?", eventID)
-	writeJSON(w, http.StatusOK, event)
+	return c.JSON(http.StatusOK, event)
 }
 
 // HandleDeleteEvent イベントの削除 (幹事専用)
-func HandleDeleteEvent(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleDeleteEvent(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
-	eventIDStr := r.PathValue("id")
+	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
-		writeError(w, http.StatusBadRequest, "Missing event ID")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid UUID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	var event model.Event
 	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "Event not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
 	if event.CreatedBy == nil || *event.CreatedBy != claims.UserID {
-		writeError(w, http.StatusForbidden, "Forbidden")
-		return
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
 	}
 
 	if err := database.DB.Delete(&event).Error; err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete event: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete event: "+err.Error())
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Event deleted successfully"})
+	return c.JSON(http.StatusOK, map[string]string{"message": "Event deleted successfully"})
 }

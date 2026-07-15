@@ -4,9 +4,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/handler"
@@ -32,60 +33,52 @@ func main() {
 	// 認証の初期設定
 	auth.InitAuth()
 
-	mux := http.NewServeMux()
+	e := echo.New()
+
+	// ミドルウェアの設定
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOriginFunc: func(origin string) (bool, error) {
+			// クッキー認証（Credentials: true）と任意のOrigin許可を両立するための動的Origin判定
+			return true, nil
+		},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization},
+		AllowCredentials: true,
+	}))
 
 	// 共通・認証 (パブリック)
-	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok", "message":"Kanji-Chan API is running"}`))
+	e.GET("/api/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status":  "ok",
+			"message": "Kanji-Chan API is running",
+		})
 	})
-	mux.HandleFunc("GET /api/auth/login", handler.HandleLogin)
-	mux.HandleFunc("GET /api/auth/callback", handler.HandleCallback)
-	mux.HandleFunc("POST /api/auth/logout", handler.HandleLogout)
-
-	// 認証保護されるAPI用サブマルチプレクサ
-	authMux := http.NewServeMux()
-	authMux.HandleFunc("GET /api/auth/me", handler.HandleMe)
-	authMux.HandleFunc("POST /api/auth/apikey", handler.HandleUpdateAPIKey)
-	authMux.HandleFunc("POST /api/events", handler.HandleCreateEvent)
-	authMux.HandleFunc("GET /api/events", handler.HandleListEvents)
-	authMux.HandleFunc("PUT /api/events/{id}", handler.HandleUpdateEvent)
-	authMux.HandleFunc("DELETE /api/events/{id}", handler.HandleDeleteEvent)
-	authMux.HandleFunc("POST /api/ai/parse-event", handler.HandleParseEvent)
-	authMux.HandleFunc("POST /api/ai/suggest-schedule", handler.HandleSuggestSchedule)
+	e.GET("/api/auth/login", handler.HandleLogin)
+	e.GET("/api/auth/callback", handler.HandleCallback)
+	e.POST("/api/auth/logout", handler.HandleLogout)
 
 	// イベント詳細・回答登録 (パブリック)
-	mux.HandleFunc("GET /api/events/{id}", handler.HandleGetEvent)
-	mux.HandleFunc("POST /api/events/{id}/responses", handler.HandleAddResponse)
-	mux.HandleFunc("DELETE /api/events/{id}/responses/{response_id}", handler.HandleDeleteResponse)
+	e.GET("/api/events/:id", handler.HandleGetEvent)
+	e.POST("/api/events/:id/responses", handler.HandleAddResponse)
+	e.DELETE("/api/events/:id/responses/:response_id", handler.HandleDeleteResponse)
 
-	// ルーター統合
-	// 認証ミドルウェアで保護されたパスをメイン of ServeMux に登録
-	protectedHandler := handler.AuthMiddleware(authMux)
-	
-	// パスマッチングルールのため、認証が必要なエンドポイントは authMux を通す
-	// 簡易的に ServeMux 内でパス単位でミドルウェアを当てるか、
-	// メインの ServeMux にフォールバックとしてカスタムハンドラーを当てる
-	mainHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// 特定の認証が必要なパスのみミドルウェアを通す
-		if r.URL.Path == "/api/auth/me" || 
-		   r.URL.Path == "/api/auth/apikey" || 
-		   strings.HasPrefix(r.URL.Path, "/api/ai/") ||
-		   (r.URL.Path == "/api/events" && (r.Method == "POST" || r.Method == "GET")) ||
-		   (strings.HasPrefix(r.URL.Path, "/api/events/") && !strings.HasSuffix(r.URL.Path, "/responses") && !strings.Contains(r.URL.Path, "/responses/") && (r.Method == "PUT" || r.Method == "DELETE")) {
-			protectedHandler.ServeHTTP(w, r)
-			return
-		}
-		mux.ServeHTTP(w, r)
-	})
+	// 認証が必要なプライベートグループ
+	r := e.Group("")
+	r.Use(handler.AuthMiddleware)
 
-	// CORSミドルウェアを適用して起動
-	corsHandler := handler.CORSMiddleware(mainHandler)
+	r.GET("/api/auth/me", handler.HandleMe)
+	r.POST("/api/auth/apikey", handler.HandleUpdateAPIKey)
+	r.POST("/api/events", handler.HandleCreateEvent)
+	r.GET("/api/events", handler.HandleListEvents)
+	r.PUT("/api/events/:id", handler.HandleUpdateEvent)
+	r.DELETE("/api/events/:id", handler.HandleDeleteEvent)
+	r.POST("/api/ai/parse-event", handler.HandleParseEvent)
+	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule)
 
 	log.Printf("Starting Kanji-Chan backend server on port %s...", port)
-	if err := http.ListenAndServe(":"+port, corsHandler); err != nil {
+	if err := e.Start(":" + port); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
-// ※ strings パッケージのインポートが必要です。追加で修正します。

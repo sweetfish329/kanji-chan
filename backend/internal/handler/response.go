@@ -1,11 +1,11 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
@@ -23,34 +23,29 @@ type AddResponseRequest struct {
 }
 
 // HandleAddResponse イベントに対する回答の登録 (ログイン不要)
-func HandleAddResponse(w http.ResponseWriter, r *http.Request) {
-	eventIDStr := r.PathValue("id")
+func HandleAddResponse(c echo.Context) error {
+	eventIDStr := c.Param("id")
 	if eventIDStr == "" {
-		writeError(w, http.StatusBadRequest, "Missing event ID")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing event ID")
 	}
 	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid UUID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid UUID format")
 	}
 
 	// イベント存在チェック
 	var event model.Event
 	if err := database.DB.First(&event, "id = ?", eventID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "Event not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
 	var req AddResponseRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
 	if req.RespondentName == "" {
-		writeError(w, http.StatusBadRequest, "Respondent name is required")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Respondent name is required")
 	}
 
 	// トランザクション処理
@@ -64,8 +59,7 @@ func HandleAddResponse(w http.ResponseWriter, r *http.Request) {
 
 	if err := tx.Create(&response).Error; err != nil {
 		tx.Rollback()
-		writeError(w, http.StatusInternalServerError, "Failed to create response: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create response: "+err.Error())
 	}
 
 	for _, ans := range req.Answers {
@@ -76,47 +70,39 @@ func HandleAddResponse(w http.ResponseWriter, r *http.Request) {
 		}
 		if err := tx.Create(&answer).Error; err != nil {
 			tx.Rollback()
-			writeError(w, http.StatusInternalServerError, "Failed to create candidate answer: "+err.Error())
-			return
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create candidate answer: "+err.Error())
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit transaction")
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to commit transaction")
 	}
 
 	// 再取得して返す
 	var createdResponse model.Response
 	database.DB.Preload("Answers").First(&createdResponse, response.ID)
-	writeJSON(w, http.StatusCreated, createdResponse)
+	return c.JSON(http.StatusCreated, createdResponse)
 }
 
-// HandleDeleteResponse 回答の削除 (調整さんライクにID指定で誰でも、または幹事のみ。ここではシンプルにID指定で削除)
-func HandleDeleteResponse(w http.ResponseWriter, r *http.Request) {
-	responseIDStr := r.PathValue("response_id")
+// HandleDeleteResponse 回答の削除
+func HandleDeleteResponse(c echo.Context) error {
+	responseIDStr := c.Param("response_id")
 	if responseIDStr == "" {
-		writeError(w, http.StatusBadRequest, "Missing response ID")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing response ID")
 	}
 	responseID, err := strconv.Atoi(responseIDStr)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid response ID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid response ID format")
 	}
 
 	var response model.Response
 	if err := database.DB.First(&response, responseID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "Response not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Response not found")
 	}
 
-	// ※ 幹事認証を入れる場合は、claimsを取得し event.CreatedBy と比較するが、
-	// 調整さんのような緩い削除を許容するため、まずはシンプルに削除実行
 	if err := database.DB.Delete(&response).Error; err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete response: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete response: "+err.Error())
 	}
 
-	writeJSON(w, http.StatusOK, map[string]string{"message": "Response deleted successfully"})
+	return c.JSON(http.StatusOK, map[string]string{"message": "Response deleted successfully"})
 }

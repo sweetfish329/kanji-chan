@@ -1,73 +1,65 @@
 package handler
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
 	"github.com/sweetfish329/kanji-chan/backend/internal/ai"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
 
 // HandleParseEvent 自然文からイベント候補日を解析 (幹事専用)
-func HandleParseEvent(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleParseEvent(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	var req struct {
 		Text string `json:"text"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
 	if req.Text == "" {
-		writeError(w, http.StatusBadRequest, "Text input is required")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Text input is required")
 	}
 
 	// 幹事ユーザー情報を取得
 	var user model.User
 	if err := database.DB.First(&user, claims.UserID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "User not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	parsed, err := ai.ParseEvent(r.Context(), req.Text, &user)
+	parsed, err := ai.ParseEvent(c.Request().Context(), req.Text, &user)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "AI parsing failed: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "AI parsing failed: "+err.Error())
 	}
 
-	writeJSON(w, http.StatusOK, parsed)
+	return c.JSON(http.StatusOK, parsed)
 }
 
 // HandleSuggestSchedule 回答状況から最適な日程を絞り込む (幹事専用)
-func HandleSuggestSchedule(w http.ResponseWriter, r *http.Request) {
-	claims, ok := GetUserFromContext(r)
+func HandleSuggestSchedule(c echo.Context) error {
+	claims, ok := GetUserFromContext(c)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "Unauthorized")
-		return
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
 	var req struct {
 		EventID     string `json:"event_id"`
 		Preferences string `json:"preferences"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid request body")
-		return
+	if err := c.Bind(&req); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
 	eventID, err := uuid.Parse(req.EventID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "Invalid event UUID format")
-		return
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid event UUID format")
 	}
 
 	// イベントデータの取得 (Candidates, Responses と Answers をすべてロード)
@@ -79,28 +71,24 @@ func HandleSuggestSchedule(w http.ResponseWriter, r *http.Request) {
 		First(&event, "id = ?", eventID).Error
 
 	if err != nil {
-		writeError(w, http.StatusNotFound, "Event not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
 	// 権限チェック (作成者のみ)
 	if event.CreatedBy == nil || *event.CreatedBy != claims.UserID {
-		writeError(w, http.StatusForbidden, "Forbidden")
-		return
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
 	}
 
 	// 幹事ユーザー情報を取得
 	var user model.User
 	if err := database.DB.First(&user, claims.UserID).Error; err != nil {
-		writeError(w, http.StatusNotFound, "User not found")
-		return
+		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	suggestions, err := ai.SuggestSchedule(r.Context(), &event, req.Preferences, &user)
+	suggestions, err := ai.SuggestSchedule(c.Request().Context(), &event, req.Preferences, &user)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "AI suggestion failed: "+err.Error())
-		return
+		return echo.NewHTTPError(http.StatusInternalServerError, "AI suggestion failed: "+err.Error())
 	}
 
-	writeJSON(w, http.StatusOK, suggestions)
+	return c.JSON(http.StatusOK, suggestions)
 }
