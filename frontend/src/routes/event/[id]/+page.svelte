@@ -87,7 +87,8 @@
       
       // 回答フォームの初期値（すべて〇にする）
       const initialAnswers: Record<number, 'ok' | 'maybe' | 'ng'> = {};
-      data.candidates.forEach(cand => {
+      const candidates = data.candidates || [];
+      candidates.forEach(cand => {
         initialAnswers[cand.id] = 'ok';
       });
       myAnswers = initialAnswers;
@@ -105,12 +106,15 @@
     
     const stats: Record<number, { ok: number; maybe: number; ng: number; score: number }> = {};
     
-    event.candidates.forEach(cand => {
+    const candidates = event.candidates || [];
+    candidates.forEach(cand => {
       stats[cand.id] = { ok: 0, maybe: 0, ng: 0, score: 0 };
     });
 
-    event.responses.forEach(resp => {
-      resp.answers.forEach(ans => {
+    const responses = event.responses || [];
+    responses.forEach(resp => {
+      const answers = resp.answers || [];
+      answers.forEach(ans => {
         if (stats[ans.candidate_id]) {
           stats[ans.candidate_id][ans.answer_status]++;
           // スコア計算 (ok=2, maybe=1, ng=0)
@@ -345,7 +349,7 @@
           <thead>
             <tr>
               <th class="sticky-col">候補日程</th>
-              {#each event.responses as resp}
+              {#each event.responses || [] as resp}
                 <th class:th-my-response={isMyResponse(resp.id)}>
                   <div class="respondent-header">
                     <div class="respondent-name-wrapper">
@@ -379,7 +383,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each event.candidates as cand}
+            {#each event.candidates || [] as cand}
               <tr class:row-confirmed={event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}>
                 <td class="sticky-col datetime-cell">
                   {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
@@ -388,7 +392,7 @@
                   {/if}
                 </td>
                 
-                {#each event.responses as resp}
+                {#each event.responses || [] as resp}
                   {@const userAns = resp.answers.find(a => a.candidate_id === cand.id)}
                   <td class="status-cell" class:cell-my-response={isMyResponse(resp.id)}>
                     {#if userAns}
@@ -415,7 +419,7 @@
             <!-- Comment row -->
             <tr class="comment-row">
               <td class="sticky-col comment-label-cell">コメント</td>
-              {#each event.responses as resp}
+              {#each event.responses || [] as resp}
                 <td class="comment-cell" class:cell-my-response={isMyResponse(resp.id)}>
                   {#if resp.comment}
                     <div class="comment-tooltip-trigger" title={resp.comment}>
@@ -457,7 +461,7 @@
           <div class="response-dates-picker">
             <span class="form-label">各日程への都合</span>
             <div class="date-picker-list">
-              {#each event.candidates as cand}
+              {#each event.candidates || [] as cand}
                 <div class="picker-row">
                   <span class="picker-date">{formatDateTime(cand.event_date, cand.start_time, cand.end_time)}</span>
                   <div class="btn-group-status">
