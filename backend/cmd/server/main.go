@@ -2,11 +2,13 @@ package main
 
 import (
 	"embed"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v5"
@@ -71,6 +73,9 @@ func main() {
 	e.PUT("/api/events/:id/responses/:response_id", handler.HandleUpdateResponse)
 	e.DELETE("/api/events/:id/responses/:response_id", handler.HandleDeleteResponse)
 
+	// OGP動的画像生成 (パブリック)
+	e.GET("/api/ogp/:id", handler.HandleOGPImage)
+
 	// 認証が必要なプライベートグループ
 	r := e.Group("")
 
@@ -82,6 +87,58 @@ func main() {
 	r.DELETE("/api/events/:id", handler.HandleDeleteEvent, handler.AuthMiddleware)
 	r.POST("/api/ai/parse-event", handler.HandleParseEvent, handler.AuthMiddleware)
 	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule, handler.AuthMiddleware)
+
+	// ==========================================
+	// SEO: robots.txt / sitemap.xml を動的生成
+	// PUBLIC_SITE_URL 環境変数でサイトURLを制御
+	// 例: PUBLIC_SITE_URL=https://example.com
+	// ==========================================
+	siteURL := os.Getenv("PUBLIC_SITE_URL")
+	if siteURL == "" {
+		siteURL = "http://localhost:" + port
+	}
+	// 末尾スラッシュを除去
+	siteURL = strings.TrimRight(siteURL, "/")
+
+	e.GET("/robots.txt", func(c *echo.Context) error {
+		c.Response().Header().Set("Content-Type", "text/plain; charset=utf-8")
+		body := fmt.Sprintf(`User-agent: *
+Allow: /$
+Disallow: /event/
+Disallow: /admin/
+Disallow: /api/
+
+# SNS・メッセージングボット向けOGPプレビューの許可
+User-agent: Twitterbot
+User-agent: Discordbot
+User-agent: facebookexternalhit
+User-agent: Linespider
+User-agent: Slackbot
+User-agent: SkypeUriPreview
+Allow: /event/
+Allow: /api/ogp/
+Disallow: /admin/
+
+Sitemap: %s/sitemap.xml
+`, siteURL)
+		return c.String(http.StatusOK, body)
+	})
+
+	e.GET("/sitemap.xml", func(c *echo.Context) error {
+		c.Response().Header().Set("Content-Type", "application/xml; charset=utf-8")
+		body := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>%s/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ja" href="%s/"/>
+  </url>
+</urlset>
+`, siteURL, siteURL)
+		return c.String(http.StatusOK, body)
+	})
 
 	// フロントエンドの静的アセット配信 (SPAルーティング対応)
 	assetFS, err := fs.Sub(webAssets, "dist")
@@ -95,6 +152,32 @@ func main() {
 		path := c.Param("*")
 		if path == "" {
 			path = "index.html"
+		}
+
+		// SNSボットからのリクエストで /event/ の場合は OGP HTML を返す
+		if handler.HandleOGP(c, siteURL) {
+			return nil
+		}
+
+
+		// ==========================================
+		// SEO: X-Robots-Tag HTTPヘッダーの設定
+		// ルートページのみ index, それ以外の HTML ページは noindex
+		// (静的アセット・robots.txt・sitemap.xml は除外)
+		// ==========================================
+		reqPath := c.Request().URL.Path
+		isStaticAsset := len(reqPath) > 1 && (reqPath[1] == '_' ||
+			reqPath == "/robots.txt" ||
+			reqPath == "/sitemap.xml" ||
+			reqPath == "/favicon.ico" ||
+			reqPath == "/favicon.svg")
+		if !isStaticAsset {
+			if reqPath == "/" || reqPath == "" {
+				c.Response().Header().Set("X-Robots-Tag", "index, follow")
+			} else {
+				// /event/*, /admin/* はクローラーに非表示
+				c.Response().Header().Set("X-Robots-Tag", "noindex, nofollow")
+			}
 		}
 
 		// ファイルが存在するかチェック
@@ -128,6 +211,7 @@ func main() {
 		http.ServeContent(c.Response(), c.Request(), "index.html", stat.ModTime(), seeker)
 		return nil
 	})
+
 
 	log.Printf("Starting Kanji-Chan backend server on port %s...", port)
 	if err := e.Start(":" + port); err != nil {
