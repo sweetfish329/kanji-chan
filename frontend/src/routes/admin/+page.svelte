@@ -24,17 +24,31 @@
     end_time: string;
   }
 
+  interface UserApiKey {
+    id: number;
+    name: string;
+    key_prefix: string;
+    created_at: string;
+    last_used_at?: string;
+  }
+
   // Svelte 5 Runes for Reactivity
   let user = $state<User | null>(null);
   let events = $state<Event[]>([]);
+  let userApiKeys = $state<UserApiKey[]>([]);
   let activeTab = $state<'list' | 'create-ai' | 'create-manual' | 'settings'>('list');
   let loading = $state(true);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
-  // API Key state
+  // Gemini API Key state
   let apiKeyInput = $state('');
   let apiKeyUpdateSuccess = $state('');
+
+  // 幹事ちゃん API Key state (MCP・外部API連携用)
+  let newKeyName = $state('');
+  let createdRawKey = $state<string | null>(null);
+  let isGeneratingKey = $state(false);
 
   // AI Creation state
   let aiTextInput = $state('');
@@ -60,6 +74,9 @@
       
       const eventsData = await api.get<Event[]>('/events');
       events = eventsData;
+
+      const keysData = await api.get<UserApiKey[]>('/auth/apikeys');
+      userApiKeys = keysData;
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
       // 未ログインの場合はログインへ誘導
@@ -68,6 +85,55 @@
       loading = false;
     }
   });
+
+  async function generateUserApiKey(e: SubmitEvent) {
+    e.preventDefault();
+    isGeneratingKey = true;
+    try {
+      const res = await api.post<{ id: number; name: string; key: string; key_prefix: string; created_at: string }>(
+        '/auth/apikeys',
+        { name: newKeyName }
+      );
+      createdRawKey = res.key;
+      userApiKeys = [res, ...userApiKeys];
+      newKeyName = '';
+      toast.push('新しいAPIキーを発行しました！');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '発行に失敗しました';
+      toast.push('APIキーの発行に失敗しました: ' + msg, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
+    } finally {
+      isGeneratingKey = false;
+    }
+  }
+
+  async function deleteUserApiKey(id: number, name: string) {
+    if (!confirm(`APIキー「${name}」を削除しますか？\nこのキーを使用している連携サービス（MCPやAPI）はアクセスできなくなります。`)) {
+      return;
+    }
+    try {
+      await api.delete(`/auth/apikeys/${id}`);
+      userApiKeys = userApiKeys.filter(k => k.id !== id);
+      toast.push(`APIキー「${name}」を削除しました`);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '削除に失敗しました';
+      toast.push('APIキーの削除に失敗しました: ' + msg, {
+        theme: {
+          '--toastBackground': 'var(--color-ng)',
+          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
+        }
+      });
+    }
+  }
+
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text);
+    toast.push('APIキーをクリップボードにコピーしました！');
+  }
 
   async function updateApiKey(e: SubmitEvent) {
     e.preventDefault();
@@ -278,7 +344,7 @@
             onclick={() => activeTab = 'settings'}
           >
             <span class="material-symbols-rounded" aria-hidden="true">settings</span>
-            AI設定 (APIキー)
+            ユーザー設定 & APIキー
           </button>
         </div>
       </aside>
@@ -482,35 +548,141 @@
           </div>
 
         {:else if activeTab === 'settings'}
-          <div class="glass-panel">
-            <h2 class="section-title">AI設定 (Gemini APIキー)</h2>
-            <p class="tab-intro">
-              イベント作成のアシストや日程の絞り込み機能には AI (Gemini API) を使用します。
-              幹事ごとのプライベートなAPIキーを設定できます（暗号化してデータベースに安全に保持されます）。
-              未設定の場合は、システムデフォルトのキーが使用されます。
-            </p>
+          <div class="glass-panel settings-container">
+            <h2 class="section-title">ユーザー設定 & 連携</h2>
 
-            <form onsubmit={updateApiKey}>
-              <div class="form-group">
-                <label for="api-key">Gemini APIキー</label>
-                <input 
-                  type="password" 
-                  id="api-key" 
-                  placeholder="AI-key-xxxx..." 
-                  bind:value={apiKeyInput} 
-                />
-                <p class="helper-text">Google AI Studioから取得したAPIキーを入力してください。</p>
+            <!-- 幹事ちゃん APIキー (MCP・外部連携) セクション -->
+            <div class="settings-section">
+              <div class="section-header">
+                <span class="material-symbols-rounded section-icon" aria-hidden="true">key</span>
+                <div>
+                  <h3>幹事ちゃん APIキー (MCP & REST API)</h3>
+                  <p class="section-desc">
+                    外部ツール（MCPクライアント、Pythonスクリプト、curl等）から幹事ちゃんのAPIを利用するためのAPIキーを発行します。
+                  </p>
+                </div>
               </div>
 
-              {#if apiKeyUpdateSuccess}
-                <p class="success-text" role="status">{apiKeyUpdateSuccess}</p>
+              {#if createdRawKey}
+                <div class="key-created-banner glass-panel animate-fade-in" role="alert">
+                  <div class="banner-header">
+                    <span class="material-symbols-rounded" aria-hidden="true">verified</span>
+                    <strong>APIキーが正常に発行されました</strong>
+                  </div>
+                  <p class="warning-text">
+                    ⚠️ 安全のため、このキーは<strong>今しか表示されません</strong>。必ずコピーして安全な場所に保管してください。
+                  </p>
+                  <div class="key-copy-box">
+                    <code class="raw-key-code">{createdRawKey}</code>
+                    <button class="btn btn-primary btn-sm" onclick={() => copyToClipboard(createdRawKey!)}>
+                      <span class="material-symbols-rounded" aria-hidden="true">content_copy</span>
+                      コピー
+                    </button>
+                  </div>
+                  <button class="btn btn-secondary btn-sm close-key-btn" onclick={() => createdRawKey = null}>
+                    閉じる
+                  </button>
+                </div>
               {/if}
 
-              <button type="submit" class="btn btn-primary">
-                <span class="material-symbols-rounded" aria-hidden="true">save</span>
-                設定を保存する
-              </button>
-            </form>
+              <form onsubmit={generateUserApiKey} class="generate-key-form">
+                <div class="form-row">
+                  <div class="form-group flex-grow">
+                    <label for="new-key-name">APIキーの識別名</label>
+                    <input 
+                      type="text" 
+                      id="new-key-name" 
+                      placeholder="例: My MCP Client, Claude Desktop" 
+                      bind:value={newKeyName} 
+                    />
+                  </div>
+                  <button type="submit" class="btn btn-primary generate-btn" disabled={isGeneratingKey}>
+                    <span class="material-symbols-rounded" aria-hidden="true">add_key</span>
+                    {isGeneratingKey ? '発行中...' : 'APIキーを発行'}
+                  </button>
+                </div>
+              </form>
+
+              <div class="apikeys-list-wrapper">
+                <h4>発行済みAPIキー</h4>
+                {#if userApiKeys.length === 0}
+                  <p class="no-keys-text">まだ発行されたAPIキーはありません。</p>
+                {:else}
+                  <div class="apikeys-table">
+                    {#each userApiKeys as k}
+                      <div class="apikey-row">
+                        <div class="apikey-info">
+                          <span class="apikey-name">{k.name}</span>
+                          <span class="apikey-prefix"><code>{k.key_prefix}</code></span>
+                        </div>
+                        <div class="apikey-meta">
+                          <span class="key-date">作成日: {new Date(k.created_at).toLocaleDateString()}</span>
+                          {#if k.last_used_at}
+                            <span class="key-date">最終利用: {new Date(k.last_used_at).toLocaleDateString()}</span>
+                          {:else}
+                            <span class="key-date">未利用</span>
+                          {/if}
+                        </div>
+                        <button 
+                          class="btn btn-danger btn-sm-del" 
+                          title="APIキーを削除" 
+                          aria-label={`APIキー「${k.name}」を削除`}
+                          onclick={() => deleteUserApiKey(k.id, k.name)}
+                        >
+                          <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
+                {/if}
+              </div>
+
+              <div class="api-usage-guide">
+                <h4>🔑 APIキー & MCPサーバーの使い方</h4>
+                <p><strong>MCP サーバー URL:</strong> <code>/mcp</code> (Streamable HTTP)</p>
+                <p>発行したAPIキーは、HTTPリクエストのヘッダーに設定してご利用ください：</p>
+                <pre class="code-block"><code>Authorization: Bearer kc_your_api_key_here
+# または
+X-API-Key: kc_your_api_key_here</code></pre>
+              </div>
+            </div>
+
+            <hr class="divider" />
+
+            <!-- Gemini APIキー 設定セクション (既存機能) -->
+            <div class="settings-section">
+              <div class="section-header">
+                <span class="material-symbols-rounded section-icon" aria-hidden="true">psychology</span>
+                <div>
+                  <h3>AI機能用 Gemini APIキー</h3>
+                  <p class="section-desc">
+                    イベント作成のアシストや日程の自動絞り込みに使用する Gemini APIキーを登録します（暗号化してデータベースに保存されます）。
+                  </p>
+                </div>
+              </div>
+
+              <form onsubmit={updateApiKey}>
+                <div class="form-group">
+                  <label for="api-key">Gemini APIキー</label>
+                  <input 
+                    type="password" 
+                    id="api-key" 
+                    placeholder="AI-key-xxxx..." 
+                    bind:value={apiKeyInput} 
+                  />
+                  <p class="helper-text">Google AI Studioから取得したAPIキーを入力してください。未設定の場合はシステム共有キーが適用されます。</p>
+                </div>
+
+                {#if apiKeyUpdateSuccess}
+                  <p class="success-text" role="status">{apiKeyUpdateSuccess}</p>
+                {/if}
+
+                <button type="submit" class="btn btn-primary">
+                  <span class="material-symbols-rounded" aria-hidden="true">save</span>
+                  Gemini APIキーを保存
+                </button>
+              </form>
+            </div>
           </div>
         {/if}
       </section>
@@ -812,5 +984,195 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
+  }
+
+  /* Settings Page Styles */
+  .settings-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  .settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .section-icon {
+    font-size: 2rem;
+    color: var(--color-primary);
+    padding: 0.5rem;
+    background: rgba(94, 111, 98, 0.1);
+    border-radius: var(--radius-md);
+  }
+
+  .section-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+
+  .key-created-banner {
+    background: rgba(94, 111, 98, 0.12);
+    border: 1px solid var(--color-primary);
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .banner-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary);
+    font-size: 1.05rem;
+  }
+
+  .warning-text {
+    font-size: 0.88rem;
+    color: var(--text-primary);
+  }
+
+  .key-copy-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #FAF8F5;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+    overflow-x: auto;
+  }
+
+  .raw-key-code {
+    font-family: monospace;
+    font-size: 0.95rem;
+    color: var(--color-accent);
+    word-break: break-all;
+    flex: 1;
+  }
+
+  .close-key-btn {
+    align-self: flex-end;
+  }
+
+  .generate-key-form .form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .generate-key-form .form-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  .flex-grow {
+    flex: 1;
+  }
+
+  .generate-btn {
+    white-space: nowrap;
+  }
+
+  .apikeys-list-wrapper {
+    margin-top: 1rem;
+  }
+
+  .apikeys-list-wrapper h4 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .no-keys-text {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  .apikeys-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .apikey-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1.25rem;
+    background: #FAF8F5;
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .apikey-row {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  .apikey-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .apikey-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+
+  .apikey-prefix code {
+    background: rgba(0,0,0,0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+  }
+
+  .apikey-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .api-usage-guide {
+    background: rgba(0,0,0,0.03);
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
+    border-left: 4px solid var(--color-accent);
+    font-size: 0.88rem;
+    margin-top: 1rem;
+  }
+
+  .api-usage-guide h4 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .code-block {
+    background: #2d3748;
+    color: #edf2f7;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-sm);
+    margin-top: 0.5rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
   }
 </style>

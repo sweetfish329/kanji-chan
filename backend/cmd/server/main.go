@@ -16,6 +16,7 @@ import (
 	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/handler"
+	"github.com/sweetfish329/kanji-chan/backend/internal/mcp"
 )
 
 //go:embed dist/*
@@ -81,12 +82,18 @@ func main() {
 
 	r.GET("/api/auth/me", handler.HandleMe, handler.AuthMiddleware)
 	r.POST("/api/auth/apikey", handler.HandleUpdateAPIKey, handler.AuthMiddleware)
-	r.POST("/api/events", handler.HandleCreateEvent)
+	r.GET("/api/auth/apikeys", handler.HandleListAPIKeys, handler.AuthMiddleware)
+	r.POST("/api/auth/apikeys", handler.HandleCreateAPIKey, handler.AuthMiddleware)
+	r.DELETE("/api/auth/apikeys/:id", handler.HandleDeleteAPIKey, handler.AuthMiddleware)
+	r.POST("/api/events", handler.HandleCreateEvent, handler.AuthMiddleware)
 	r.GET("/api/events", handler.HandleListEvents, handler.AuthMiddleware)
 	r.PUT("/api/events/:id", handler.HandleUpdateEvent, handler.AuthMiddleware)
 	r.DELETE("/api/events/:id", handler.HandleDeleteEvent, handler.AuthMiddleware)
 	r.POST("/api/ai/parse-event", handler.HandleParseEvent, handler.AuthMiddleware)
 	r.POST("/api/ai/suggest-schedule", handler.HandleSuggestSchedule, handler.AuthMiddleware)
+
+	// Streamable HTTP MCP (Model Context Protocol) ルート (エンドポイント: /mcp)
+	e.Any("/mcp", mcp.NewHandler(), handler.AuthMiddleware)
 
 	// ==========================================
 	// SEO: robots.txt / sitemap.xml を動的生成

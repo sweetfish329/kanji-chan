@@ -10,32 +10,54 @@ import (
 
 const UserKey = "user"
 
-// AuthMiddleware ログイン済みの幹事/管理者用の認証ミドルウェア
+// AuthMiddleware ログイン済みの幹事/管理者用の認証ミドルウェア (JWTおよびAPIキーに対応)
 func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c *echo.Context) error {
-		var tokenStr string
+		var claims *auth.Claims
+		var err error
 
-		// 1. Authorizationヘッダーを確認
+		// 1. Authorization ヘッダーを確認
 		authHeader := c.Request().Header.Get("Authorization")
-		if strings.HasPrefix(authHeader, "Bearer ") {
-			tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
-		}
+		if authHeader != "" {
+			tokenStr := authHeader
+			if strings.HasPrefix(authHeader, "Bearer ") {
+				tokenStr = strings.TrimPrefix(authHeader, "Bearer ")
+			}
 
-		// 2. なければCookieを確認
-		if tokenStr == "" {
-			cookie, err := c.Cookie("session_token")
-			if err == nil {
-				tokenStr = cookie.Value
+			// API キーの場合 (kc_ プレフィックス)
+			if strings.HasPrefix(tokenStr, auth.APIKeyPrefix) {
+				claims, err = auth.ValidateAPIKey(tokenStr)
+			} else {
+				claims, err = auth.ValidateJWT(tokenStr)
 			}
 		}
 
-		if tokenStr == "" {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Authentication required")
+		// 2. X-API-Key ヘッダーを確認
+		if claims == nil {
+			apiKeyHeader := c.Request().Header.Get("X-API-Key")
+			if apiKeyHeader != "" {
+				claims, err = auth.ValidateAPIKey(apiKeyHeader)
+			}
 		}
 
-		claims, err := auth.ValidateJWT(tokenStr)
-		if err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid or expired token")
+		// 3. クエリパラメーター api_key を確認
+		if claims == nil {
+			queryApiKey := c.QueryParam("api_key")
+			if queryApiKey != "" {
+				claims, err = auth.ValidateAPIKey(queryApiKey)
+			}
+		}
+
+		// 4. Cookie (session_token) を確認
+		if claims == nil {
+			cookie, cookieErr := c.Cookie("session_token")
+			if cookieErr == nil && cookie.Value != "" {
+				claims, err = auth.ValidateJWT(cookie.Value)
+			}
+		}
+
+		if claims == nil || err != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Authentication required (Invalid or missing token/API key)")
 		}
 
 		// Echoコンテキストにユーザー情報を格納

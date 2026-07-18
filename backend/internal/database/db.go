@@ -73,6 +73,7 @@ func InitDB() (*gorm.DB, error) {
 	log.Println("Running database migrations...")
 	err = db.AutoMigrate(
 		&model.User{},
+		&model.ApiKey{},
 		&model.Event{},
 		&model.EventCandidate{},
 		&model.Response{},

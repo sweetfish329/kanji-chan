@@ -17,6 +17,18 @@ type User struct {
 	GeminiAPIKey  string    `gorm:"type:varchar(255)" json:"gemini_api_key,omitempty"` // 暗号化して保存するか、まずは平文（デモ用）で
 	CreatedAt     time.Time `json:"created_at"`
 	Events        []Event   `gorm:"foreignKey:CreatedBy" json:"events,omitempty"`
+	ApiKeys       []ApiKey  `gorm:"foreignKey:UserID;constraint:OnDelete:CASCADE" json:"api_keys,omitempty"`
+}
+
+// ApiKey 幹事ちゃん API キー (MCPおよび外部API連携用)
+type ApiKey struct {
+	ID         uint       `gorm:"primaryKey" json:"id"`
+	UserID     uint       `gorm:"not null;index" json:"user_id"`
+	Name       string     `gorm:"type:varchar(255);not null" json:"name"`
+	KeyPrefix  string     `gorm:"type:varchar(20);not null" json:"key_prefix"` // 例: "kc_8f3a9b..." (UI表示用)
+	KeyHash    string     `gorm:"type:varchar(64);not null;uniqueIndex" json:"-"` // SHA-256
+	CreatedAt  time.Time  `json:"created_at"`
+	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 }
 
 // Event 調整イベント
