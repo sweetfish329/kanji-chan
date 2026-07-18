@@ -81,7 +81,7 @@
        ========================================== -->
   <title>幹事ちゃん — AIが日程調整をおしゃれに、スマートに</title>
   <meta name="robots" content="index, follow" />
-  <meta name="description" content="幹事ちゃんは、AIが候補日を自動提案・分析するモダンな日程調整サービスです。登録不要ですぐに使える〇△×方式で、グループの予定調整をシンプルかつおしゃれに解決します。" />
+  <meta name="description" content="幹事ちゃんは、AIが候補日時を自動提案・分析するモダンな日程調整サービスです。完全無料で登録・ログイン不要。〇△×形式のシンプルな操作で、グループの予定調整をスムーズかつおしゃれに解決します。" />
   <meta name="keywords" content="予定調整, 日程調整, AI, 幹事, 調整さん, スケジュール, グループ調整, おしゃれ, モダン, 無料, ログイン不要" />
   {#if siteUrl}
     <link rel="canonical" href="{siteUrl}/" />
@@ -91,6 +91,9 @@
   <meta property="og:type" content="website" />
   {#if siteUrl}
     <meta property="og:url" content="{siteUrl}/" />
+    <meta property="og:image" content="{siteUrl}/ogp.jpg" />
+  {:else}
+    <meta property="og:image" content="/ogp.jpg" />
   {/if}
   <meta property="og:site_name" content="幹事ちゃん" />
   <meta property="og:title" content="幹事ちゃん — AIが日程調整をおしゃれに、スマートに" />
@@ -101,6 +104,11 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="幹事ちゃん — AIが日程調整をおしゃれに、スマートに" />
   <meta name="twitter:description" content="自然な言葉で候補日を提案、AIが最適な日程を分析。登録不要ですぐ使えるモダンな日程調整サービス。" />
+  {#if siteUrl}
+    <meta name="twitter:image" content="{siteUrl}/ogp.jpg" />
+  {:else}
+    <meta name="twitter:image" content="/ogp.jpg" />
+  {/if}
 
   <!-- JSON-LD 構造化データ (Google 検索エンジン向け) -->
   {@html `<script type="application/ld+json">
@@ -109,6 +117,7 @@
     "@type": "WebApplication",
     "name": "幹事ちゃん",
     ${siteUrl ? `"url": "${siteUrl}/",` : ''}
+    "image": "${siteUrl ? siteUrl : ''}/ogp.jpg",
     "description": "AIが候補日を自動提案・分析するモダンな日程調整サービス。登録不要で〇△×方式のグループスケジュール調整ができます。",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web",
@@ -133,10 +142,10 @@
   <!-- 左カラム：いきなり予定作成 -->
   <div class="hero-text-section">
     <div class="glass-panel creation-panel">
-      <h2 class="panel-title-large">
+      <h1 class="panel-title-large">
         <span class="material-symbols-rounded icon-accent" aria-hidden="true">add_circle</span>
         日程調整を新しくつくる
-      </h2>
+      </h1>
       <p class="panel-subtitle-large">日程候補とイベント名を入力するだけで、すぐに調整ページを作成できます（ログイン不要）</p>
 
       <form onsubmit={createEvent}>
@@ -222,7 +231,7 @@
     <div class="sidebar-cards">
       <!-- 回答・閲覧 -->
       <div class="glass-panel event-code-panel">
-        <h3 class="panel-title">イベントへの回答・閲覧</h3>
+        <h2 class="panel-title">イベントへの回答・閲覧</h2>
         <p class="panel-subtitle">招待されたイベントIDを入力してください</p>
         
         <form onsubmit={navigateToEvent}>
@@ -252,7 +261,7 @@
       <div class="ai-login-card glass-panel">
         <div class="ai-card-header">
           <span class="material-symbols-rounded ai-icon" aria-hidden="true">auto_awesome</span>
-          <h4>AI日程決定 ＆ アシスト</h4>
+          <h3>AI日程決定 ＆ アシスト</h3>
         </div>
         <p class="ai-card-text">
           自然文からの候補日自動抽出や、回答結果からAIが最適な日程を自動分析・決定する機能を利用する場合は、ログインしてご利用ください。
@@ -271,19 +280,19 @@
   <div class="features-grid">
     <div class="feature-card glass-panel" use:reveal>
       <span class="material-symbols-rounded feature-icon" aria-hidden="true">edit_note</span>
-      <h4>言葉から、候補日を紡ぐ</h4>
+      <h3>言葉から、候補日を紡ぐ</h3>
       <p>「来週の平日夜、渋谷でランチかお茶。候補日を3つほど」といった自然な言葉から、AIが最適な候補日と時間帯をカレンダーから美しく提案・入力します。（ログインが必要です）</p>
     </div>
     
     <div class="feature-card glass-panel" use:reveal>
       <span class="material-symbols-rounded feature-icon" aria-hidden="true">psychology</span>
-      <h4>調和を生み出す決定サポート</h4>
+      <h3>調和を生み出す決定サポート</h3>
       <p>「仕事帰りに無理なく」「Aさんは必ず招待」といった、数字だけでは測れない幹事の想いと全員の都合をAIが汲み取り、一番心地よい日程を提案します。（ログインが必要です）</p>
     </div>
 
     <div class="feature-card glass-panel" use:reveal>
       <span class="material-symbols-rounded feature-icon" aria-hidden="true">person_check</span>
-      <h4>おもてなしのシンプル回答</h4>
+      <h3>おもてなしのシンプル回答</h3>
       <p>回答するメンバーは登録やログインが不要。馴染み深い「〇・△・×」のシンプルなテーブルで、どのデバイスからも迷わずすぐに回答できます。</p>
     </div>
   </div>
@@ -441,7 +450,7 @@
     font-size: 1.5rem;
   }
 
-  .ai-card-header h4 {
+  .ai-card-header h3 {
     font-size: 1.15rem;
     font-weight: 500;
   }
@@ -492,7 +501,7 @@
     color: var(--color-accent);
   }
 
-  .feature-card h4 {
+  .feature-card h3 {
     font-size: 1.2rem;
     font-weight: 500;
     color: var(--text-primary);

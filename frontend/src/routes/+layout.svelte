@@ -18,7 +18,7 @@
   let isMobile = $state(false);
   let mobileMenuOpen = $state(false);
 
-  onMount(async () => {
+  onMount(() => {
     // デバイスタイプ判定: UA + 画面幅の両方で判定
     const ua = navigator.userAgent;
     const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
@@ -41,14 +41,16 @@
     };
     window.addEventListener('resize', handleResize);
 
-    try {
-      const data = await api.get<User>('/auth/me');
-      user = data;
-    } catch {
-      user = null;
-    } finally {
-      loading = false;
-    }
+    api.get<User>('/auth/me')
+      .then((data) => {
+        user = data;
+      })
+      .catch(() => {
+        user = null;
+      })
+      .finally(() => {
+        loading = false;
+      });
 
     return () => window.removeEventListener('resize', handleResize);
   });
