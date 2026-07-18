@@ -297,6 +297,17 @@
 
 <svelte:head>
   <title>{event ? `「${event.title}」の出欠入力・日程調整 | 幹事ちゃん` : '日程調整 | 幹事ちゃん'}</title>
+  {#if event}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={`「${event.title}」の日程調整 | 幹事ちゃん`} />
+    <meta property="og:description" content={event.description || '幹事ちゃんで出欠回答をお願いします。'} />
+    <meta property="og:image" content={`${shareUrl.split('/event/')[0]}/api/ogp/${event.id}.png`} />
+    <meta property="og:image:type" content="image/svg+xml" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={`「${event.title}」の日程調整 | 幹事ちゃん`} />
+    <meta name="twitter:description" content={event.description || '幹事ちゃんで出欠回答をお願いします。'} />
+    <meta name="twitter:image" content={`${shareUrl.split('/event/')[0]}/api/ogp/${event.id}.png`} />
+  {/if}
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
