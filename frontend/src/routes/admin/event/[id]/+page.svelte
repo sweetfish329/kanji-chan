@@ -661,7 +661,7 @@
     background: hsla(223, 40%, 10%, 0.6);
     padding: 1rem;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
     border: 1px solid var(--border-glass);
     text-align: left;
     width: 100%;

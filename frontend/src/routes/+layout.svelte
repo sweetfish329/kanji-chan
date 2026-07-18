@@ -243,7 +243,7 @@
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    transition: background var(--transition-fast);
+    transition: background-color var(--transition-fast);
   }
 
   .mobile-menu-btn:active {

@@ -412,7 +412,7 @@
     padding: 0.5rem;
     cursor: pointer;
     border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
   }
 
   .btn-icon:hover {

@@ -596,7 +596,7 @@
     font-family: var(--font-display);
     font-weight: 600;
     text-align: left;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
   }
 
   .sidebar-btn:hover {
@@ -768,7 +768,7 @@
     padding: 0.5rem;
     cursor: pointer;
     border-radius: var(--radius-sm);
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
   }
 
   .btn-icon:hover {
@@ -808,7 +808,7 @@
     font-size: 0.85rem;
     border-radius: var(--radius-sm);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
     display: inline-flex;
     align-items: center;
     justify-content: center;

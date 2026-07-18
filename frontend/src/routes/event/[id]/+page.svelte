@@ -62,9 +62,12 @@
   let editingResponseId = $state<number | null>(null);
   let responseTokens = $state<Record<number, string>>({}); // { responseId: editToken }
 
+  let shareUrl = $state('');
+
   // Load Stored Tokens on Mount
   onMount(() => {
     loadEvent();
+    shareUrl = window.location.href;
     const stored = localStorage.getItem('kanji_chan_response_tokens');
     if (stored) {
       try {
@@ -102,29 +105,34 @@
 
   // Derived state: 候補日ごとの〇△×の集計 (Svelte 5 Runes)
   let candidateStats = $derived.by(() => {
-    if (!event) return {};
-    
-    const stats: Record<number, { ok: number; maybe: number; ng: number; score: number }> = {};
-    
-    const candidates = event.candidates || [];
-    candidates.forEach(cand => {
-      stats[cand.id] = { ok: 0, maybe: 0, ng: 0, score: 0 };
-    });
-
-    const responses = event.responses || [];
-    responses.forEach(resp => {
-      const answers = resp.answers || [];
-      answers.forEach(ans => {
-        if (stats[ans.candidate_id]) {
-          stats[ans.candidate_id][ans.answer_status]++;
-          // スコア計算 (ok=2, maybe=1, ng=0)
-          if (ans.answer_status === 'ok') stats[ans.candidate_id].score += 2;
-          if (ans.answer_status === 'maybe') stats[ans.candidate_id].score += 1;
-        }
+    try {
+      if (!event) return {};
+      
+      const stats: Record<number, { ok: number; maybe: number; ng: number; score: number }> = {};
+      
+      const candidates = event.candidates || [];
+      candidates.forEach(cand => {
+        stats[cand.id] = { ok: 0, maybe: 0, ng: 0, score: 0 };
       });
-    });
 
-    return stats;
+      const responses = event.responses || [];
+      responses.forEach(resp => {
+        const answers = resp.answers || [];
+        answers.forEach(ans => {
+          if (ans && stats[ans.candidate_id]) {
+            stats[ans.candidate_id][ans.answer_status]++;
+            // スコア計算 (ok=2, maybe=1, ng=0)
+            if (ans.answer_status === 'ok') stats[ans.candidate_id].score += 2;
+            if (ans.answer_status === 'maybe') stats[ans.candidate_id].score += 1;
+          }
+        });
+      });
+
+      return stats;
+    } catch (err) {
+      console.error("Error in candidateStats derived state:", err);
+      return {};
+    }
   });
 
   // 回答ステータスのヘルパー
@@ -287,15 +295,21 @@
   }
 </script>
 
+<!-- noindex: イベントページは検索エンジンに表示しない -->
+<svelte:head>
+  <title>{event ? `${event.title} | 幹事ちゃん` : '幹事ちゃん'}</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 <div class="container event-page-container" use:reveal>
   {#if loading}
-    <div class="glass-panel loading-panel">
+    <div class="glass-panel loading-panel" role="status" aria-label="読み込み中">
       <div class="spinner"></div>
       <p>イベント情報をロード中...</p>
     </div>
   {:else if errorMsg}
-    <div class="glass-panel error-panel-large">
-      <span class="material-symbols-rounded error-icon-lg">warning</span>
+    <div class="glass-panel error-panel-large" role="alert">
+      <span class="material-symbols-rounded error-icon-lg" aria-hidden="true">warning</span>
       <h2>エラーが発生しました</h2>
       <p>{errorMsg}</p>
       <a href="/" class="btn btn-primary">トップページに戻る</a>
@@ -313,7 +327,7 @@
       
       {#if event.status === 'confirmed' && event.confirmed_candidate}
         <div class="confirmed-box glass-panel" use:reveal>
-          <span class="material-symbols-rounded confirmed-icon">celebration</span>
+          <span class="material-symbols-rounded confirmed-icon" aria-hidden="true">celebration</span>
           <div class="confirmed-info">
             <p class="confirmed-label">確定した日時</p>
             <h3 class="confirmed-time">
@@ -326,7 +340,7 @@
       <div class="share-box">
         <label for="share-url">回答共有URL</label>
         <div class="copy-input-group">
-          <input type="text" id="share-url" readonly value={window.location.href} />
+          <input type="text" id="share-url" readonly value={shareUrl} />
           <button 
             class="btn btn-secondary" 
             onclick={() => {
@@ -348,9 +362,9 @@
         <table class="answers-table">
           <thead>
             <tr>
-              <th class="sticky-col">候補日程</th>
+              <th scope="col" class="sticky-col">候補日程</th>
               {#each event.responses || [] as resp}
-                <th class:th-my-response={isMyResponse(resp.id)}>
+                <th scope="col" class:th-my-response={isMyResponse(resp.id)}>
                   <div class="respondent-header">
                     <div class="respondent-name-wrapper">
                       {#if isMyResponse(resp.id)}
@@ -363,51 +377,56 @@
                         class="edit-resp-btn" 
                         class:my-btn={isMyResponse(resp.id)}
                         title="回答を編集"
+                        aria-label={`「${resp.respondent_name}」の回答を編集`}
                         onclick={() => startEdit(resp)}
                       >
-                        <span class="material-symbols-rounded">edit</span>
+                        <span class="material-symbols-rounded" aria-hidden="true">edit</span>
                       </button>
                       <button 
                         class="delete-resp-btn" 
                         class:my-btn={isMyResponse(resp.id)}
                         title="回答を削除"
+                        aria-label={`「${resp.respondent_name}」の回答を削除`}
                         onclick={() => deleteResponse(resp.id, resp.respondent_name)}
                       >
-                        <span class="material-symbols-rounded">close</span>
+                        <span class="material-symbols-rounded" aria-hidden="true">close</span>
                       </button>
                     </div>
                   </div>
                 </th>
               {/each}
-              <th class="stats-col-header">〇 △ ×</th>
+              <th scope="col" class="stats-col-header">〇 △ ×</th>
             </tr>
           </thead>
           <tbody>
             {#each event.candidates || [] as cand}
               <tr class:row-confirmed={event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}>
-                <td class="sticky-col datetime-cell">
+                <th scope="row" class="sticky-col datetime-cell">
                   {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
                   {#if event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}
                     <span class="row-confirmed-badge">確定日</span>
                   {/if}
-                </td>
+                </th>
                 
                 {#each event.responses || [] as resp}
                   {@const userAns = resp.answers.find(a => a.candidate_id === cand.id)}
                   <td class="status-cell" class:cell-my-response={isMyResponse(resp.id)}>
                     {#if userAns}
-                      <span class={`status-indicator ${statusConfig[userAns.answer_status].class}`}>
+                      <span 
+                        class={`status-indicator ${statusConfig[userAns.answer_status].class}`}
+                        aria-label={userAns.answer_status === 'ok' ? '可' : userAns.answer_status === 'maybe' ? '条件付き可' : '不可'}
+                      >
                         {statusConfig[userAns.answer_status].label}
                       </span>
                     {:else}
-                      <span class="status-indicator">-</span>
+                      <span class="status-indicator" aria-label="未回答">-</span>
                     {/if}
                   </td>
                 {/each}
 
                 <!-- Stats summary -->
                 <td class="stats-cell">
-                  <div class="stats-summary-box">
+                  <div class="stats-summary-box" aria-label={`〇 ${candidateStats[cand.id]?.ok || 0}件、△ ${candidateStats[cand.id]?.maybe || 0}件、× ${candidateStats[cand.id]?.ng || 0}件`}>
                     <span class="stat-badge ok">〇 {candidateStats[cand.id]?.ok || 0}</span>
                     <span class="stat-badge maybe">△ {candidateStats[cand.id]?.maybe || 0}</span>
                     <span class="stat-badge ng">× {candidateStats[cand.id]?.ng || 0}</span>
@@ -418,12 +437,12 @@
 
             <!-- Comment row -->
             <tr class="comment-row">
-              <td class="sticky-col comment-label-cell">コメント</td>
+              <th scope="row" class="sticky-col comment-label-cell">コメント</th>
               {#each event.responses || [] as resp}
                 <td class="comment-cell" class:cell-my-response={isMyResponse(resp.id)}>
                   {#if resp.comment}
                     <div class="comment-tooltip-trigger" title={resp.comment}>
-                      <span class="material-symbols-rounded">chat_bubble</span>
+                      <span class="material-symbols-rounded" aria-hidden="true">chat_bubble</span>
                       <p class="comment-preview">{resp.comment}</p>
                     </div>
                   {:else}
@@ -459,16 +478,17 @@
           </div>
 
           <div class="response-dates-picker">
-            <span class="form-label">各日程への都合</span>
-            <div class="date-picker-list">
+            <span class="form-label" id="picker-label">各日程への都合</span>
+            <div class="date-picker-list" role="group" aria-labelledby="picker-label">
               {#each event.candidates || [] as cand}
                 <div class="picker-row">
                   <span class="picker-date">{formatDateTime(cand.event_date, cand.start_time, cand.end_time)}</span>
-                  <div class="btn-group-status">
+                  <div class="btn-group-status" role="group" aria-label={`${formatDateTime(cand.event_date, cand.start_time, cand.end_time)} の回答`}>
                     <button 
                       type="button" 
                       class="btn btn-secondary btn-status-choice active-ok"
                       class:active={myAnswers[cand.id] === 'ok'}
+                      aria-pressed={myAnswers[cand.id] === 'ok'}
                       onclick={() => selectAnswer(cand.id, 'ok')}
                     >
                       〇 可
@@ -477,6 +497,7 @@
                       type="button" 
                       class="btn btn-secondary btn-status-choice active-maybe"
                       class:active={myAnswers[cand.id] === 'maybe'}
+                      aria-pressed={myAnswers[cand.id] === 'maybe'}
                       onclick={() => selectAnswer(cand.id, 'maybe')}
                     >
                       △ 条件付
@@ -485,6 +506,7 @@
                       type="button" 
                       class="btn btn-secondary btn-status-choice active-ng"
                       class:active={myAnswers[cand.id] === 'ng'}
+                      aria-pressed={myAnswers[cand.id] === 'ng'}
                       onclick={() => selectAnswer(cand.id, 'ng')}
                     >
                       × 不可
@@ -497,7 +519,7 @@
 
           <div class="form-actions-row">
             <button type="submit" class="btn btn-primary btn-lg submit-resp-btn" disabled={submitting}>
-              <span class="material-symbols-rounded">save</span>
+              <span class="material-symbols-rounded" aria-hidden="true">save</span>
               {submitting ? '送信中...' : isEditing ? '回答を更新する' : 'この内容で回答を登録する'}
             </button>
             {#if isEditing}
@@ -520,7 +542,16 @@
     padding: 1.5rem 0;
   }
 
-  /* Header Card */
+  @media (max-width: 640px) {
+    .event-page-container {
+      gap: 1.25rem;
+      padding: 1rem 0;
+    }
+  }
+
+  /* ===========================
+     Header Card
+     =========================== */
   .event-header-card {
     display: flex;
     flex-direction: column;
@@ -536,12 +567,27 @@
     font-size: 2.2rem;
   }
 
+  @media (max-width: 640px) {
+    .event-title {
+      font-size: 1.5rem;
+    }
+  }
+
   .event-desc-text {
     color: var(--text-secondary);
     font-size: 1.05rem;
     white-space: pre-wrap;
   }
 
+  @media (max-width: 640px) {
+    .event-desc-text {
+      font-size: 0.9rem;
+    }
+  }
+
+  /* ===========================
+     Confirmed Box
+     =========================== */
   .confirmed-box {
     display: flex;
     align-items: center;
@@ -551,9 +597,22 @@
     padding: 1.5rem 2rem;
   }
 
+  @media (max-width: 640px) {
+    .confirmed-box {
+      padding: 1rem 1.25rem;
+      gap: 0.75rem;
+    }
+  }
+
   .confirmed-icon {
     font-size: 3rem;
     color: var(--color-ok);
+  }
+
+  @media (max-width: 640px) {
+    .confirmed-icon {
+      font-size: 2rem;
+    }
   }
 
   .confirmed-label {
@@ -568,6 +627,15 @@
     color: var(--color-ok);
   }
 
+  @media (max-width: 640px) {
+    .confirmed-time {
+      font-size: 1.2rem;
+    }
+  }
+
+  /* ===========================
+     Share Box
+     =========================== */
   .share-box {
     margin-top: 1rem;
     border-top: 1px solid var(--border-glass);
@@ -582,13 +650,35 @@
   .copy-input-group input {
     flex: 1;
     background: #FAF8F5;
+    /* Prevent URL truncation on mobile */
+    min-width: 0;
   }
 
-  /* Table styles */
+  @media (max-width: 480px) {
+    .copy-input-group {
+      flex-direction: column;
+    }
+
+    .copy-input-group input {
+      font-size: 0.8rem;
+    }
+  }
+
+  /* ===========================
+     Table
+     =========================== */
   .table-wrapper {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-glass);
+    /* Hint to user that table is scrollable */
+  }
+
+  @media (max-width: 640px) {
+    .table-wrapper {
+      margin: 0 -0.25rem; /* bleed slightly to show scroll hint */
+    }
   }
 
   .answers-table {
@@ -602,6 +692,13 @@
     border-bottom: 1px solid var(--border-glass);
   }
 
+  @media (max-width: 640px) {
+    .answers-table th, .answers-table td {
+      padding: 0.65rem 0.75rem;
+      font-size: 0.85rem;
+    }
+  }
+
   .answers-table th {
     background: var(--bg-secondary);
     color: var(--text-primary);
@@ -612,13 +709,25 @@
     letter-spacing: 0.02em;
   }
 
+  @media (max-width: 640px) {
+    .answers-table th {
+      font-size: 0.75rem;
+    }
+  }
+
   .sticky-col {
     position: sticky;
     left: 0;
     background: var(--bg-secondary);
     z-index: 10;
-    min-width: 200px;
+    min-width: 120px;
     border-right: 1px solid var(--border-glass);
+  }
+
+  @media (min-width: 641px) {
+    .sticky-col {
+      min-width: 200px;
+    }
   }
 
   .datetime-cell {
@@ -680,7 +789,9 @@
     font-weight: 600;
   }
 
-  /* Edit & Delete Action Styles */
+  /* ===========================
+     Edit & Delete Actions
+     =========================== */
   .header-action-group {
     display: flex;
     gap: 0.25rem;
@@ -692,10 +803,15 @@
     color: var(--text-muted);
     cursor: pointer;
     display: flex;
-    padding: 0.2rem;
+    padding: 0.4rem;
     border-radius: var(--radius-full);
-    transition: all var(--transition-fast);
+    transition: opacity var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
     opacity: 0.5;
+    min-width: 32px;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .edit-resp-btn.my-btn, .delete-resp-btn.my-btn {
@@ -720,6 +836,9 @@
     font-size: 0.95rem;
   }
 
+  /* ===========================
+     Status Cells
+     =========================== */
   .status-cell {
     text-align: center;
   }
@@ -730,13 +849,25 @@
     display: inline-block;
   }
 
+  @media (max-width: 640px) {
+    .status-indicator {
+      font-size: 1.1rem;
+    }
+  }
+
   .status-ok { color: var(--color-ok); }
   .status-maybe { color: var(--color-maybe); }
   .status-ng { color: var(--color-ng); }
 
   .stats-col-header {
-    min-width: 140px;
+    min-width: 100px;
     text-align: center;
+  }
+
+  @media (min-width: 641px) {
+    .stats-col-header {
+      min-width: 140px;
+    }
   }
 
   .stats-cell {
@@ -745,7 +876,9 @@
 
   .stats-summary-box {
     display: inline-flex;
-    gap: 0.5rem;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .stat-badge {
@@ -790,20 +923,34 @@
   }
 
   .comment-preview {
-    max-width: 120px;
+    max-width: 80px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: inline-block;
   }
 
+  @media (min-width: 641px) {
+    .comment-preview {
+      max-width: 120px;
+    }
+  }
+
   .no-comment {
     color: var(--text-muted);
   }
 
-  /* Response Picker */
+  /* ===========================
+     Response Picker (date voting)
+     =========================== */
   .response-dates-picker {
     margin: 2rem 0;
+  }
+
+  @media (max-width: 640px) {
+    .response-dates-picker {
+      margin: 1.25rem 0;
+    }
   }
 
   .date-picker-list {
@@ -827,12 +974,19 @@
     .picker-row {
       flex-direction: column;
       align-items: flex-start;
-      gap: 1rem;
+      gap: 0.75rem;
+      padding: 1rem;
     }
   }
 
   .picker-date {
     font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .picker-date {
+      font-size: 0.9rem;
+    }
   }
 
   .btn-group-status {
@@ -843,6 +997,15 @@
   .btn-status-choice {
     font-size: 0.85rem;
     padding: 0.5rem 1rem;
+    min-height: 40px;
+  }
+
+  @media (max-width: 380px) {
+    /* Very small screens: smaller status buttons */
+    .btn-status-choice {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+    }
   }
 
   .btn-status-choice.active-ok.active {
@@ -863,6 +1026,9 @@
     border-color: var(--color-ng);
   }
 
+  /* ===========================
+     Form Actions
+     =========================== */
   .form-actions-row {
     display: flex;
     gap: 1rem;
@@ -886,12 +1052,19 @@
   @media (max-width: 600px) {
     .form-grid {
       grid-template-columns: 1fr;
+      gap: 1rem;
     }
     .form-actions-row {
       flex-direction: column;
     }
+    .cancel-edit-btn {
+      flex: none;
+    }
   }
 
+  /* ===========================
+     Error State
+     =========================== */
   .error-panel-large {
     display: flex;
     flex-direction: column;
@@ -900,6 +1073,12 @@
     padding: 5rem 2rem;
     text-align: center;
     gap: 1rem;
+  }
+
+  @media (max-width: 640px) {
+    .error-panel-large {
+      padding: 3rem 1rem;
+    }
   }
 
   .error-icon-lg {
