@@ -2,46 +2,46 @@
 
 :root {
   /* Color Palette (Warm Neutral & Clay Earth) */
-  --bg-primary: #FAF8F5; /* Warm Linen */
-  --bg-secondary: #F3ECE3; /* Soft Greige */
+  --bg-primary: #FAF8F5;
+  --bg-secondary: #F3ECE3;
   --bg-glass: rgba(250, 248, 245, 0.75);
   --border-glass: rgba(94, 83, 74, 0.1);
   --border-focus: rgba(138, 116, 99, 0.4);
 
-  --text-primary: #2C2621; /* Rich Espresso */
-  --text-secondary: #5E534A; /* Charcoal Brown */
-  --text-muted: #93857B; /* Muted Sand */
+  --text-primary: #2C2621;
+  --text-secondary: #5E534A;
+  --text-muted: #93857B;
 
-  --color-primary: #8A7463; /* Cashmere Gray */
-  --color-secondary: #C49B82; /* Warm Terracotta */
-  --color-accent: #5E6F62; /* Sage Olive */
+  --color-primary: #8A7463;
+  --color-secondary: #C49B82;
+  --color-accent: #5E6F62;
   --gradient-brand: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
 
-  --color-ok: #5E6F62; /* Sage Olive for Ok */
-  --color-maybe: #D0A97E; /* Soft Ochre for Maybe */
-  --color-ng: #C2867F; /* Dusty Rose for Ng */
+  --color-ok: #5E6F62;
+  --color-maybe: #D0A97E;
+  --color-ng: #C2867F;
 
   /* Typography */
   --font-display: 'Playfair Display', serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Shadows & Radius (Material 3 Expressive Inspired) */
+  /* Shadows & Radius */
   --shadow-sm: 0 4px 12px rgba(44, 38, 33, 0.04);
   --shadow-md: 0 12px 36px rgba(44, 38, 33, 0.08);
   --shadow-lg: 0 24px 60px rgba(44, 38, 33, 0.12);
   --shadow-inset: inset 0 2px 4px rgba(255, 255, 255, 0.8);
-  
+
   --radius-sm: 12px;
   --radius-md: 24px;
   --radius-lg: 32px;
   --radius-full: 9999px;
 
-  /* Transitions (Spring physics style) */
+  /* Transitions */
   --transition-fast: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --transition-normal: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); /* Springy bounce */
+  --transition-normal: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  /* Svelte Toast Custom Variables */
+  /* Toast */
   --toastBackground: rgba(44, 38, 33, 0.95);
   --toastBarBackground: var(--color-accent);
   --toastColor: #FAF8F5;
@@ -49,13 +49,22 @@
   --toastBorderRadius: var(--radius-sm);
   --toastBoxShadow: var(--shadow-md);
   --toastBorder: 1px solid rgba(250, 248, 245, 0.15);
+
+  /* Mobile touch target minimum */
+  --touch-target: 44px;
 }
 
-/* Reset & Base Styles */
-* {
+/* Reset & Base */
+*, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+html {
+  /* Prevent font size adjustment on orientation change */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
@@ -69,7 +78,7 @@ body {
   position: relative;
 }
 
-/* Base Grainy Background Overlay */
+/* Grainy Background */
 body::after {
   content: "";
   position: fixed;
@@ -88,7 +97,9 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.3;
 }
 
-/* UI Utilities & Components */
+/* ===========================
+   Glass Panel
+   =========================== */
 .glass-panel {
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
@@ -100,6 +111,16 @@ h1, h2, h3, h4, h5, h6 {
   transition: transform var(--transition-normal), box-shadow var(--transition-fast);
 }
 
+@media (max-width: 640px) {
+  .glass-panel {
+    padding: 1.5rem 1.25rem;
+    border-radius: var(--radius-sm);
+  }
+}
+
+/* ===========================
+   Gradient Text
+   =========================== */
 .gradient-text {
   background: var(--gradient-brand);
   -webkit-background-clip: text;
@@ -110,7 +131,9 @@ h1, h2, h3, h4, h5, h6 {
   font-style: italic;
 }
 
-/* Grainy Gradient Card (Replacing Aurora Card for Soft Natural Texture) */
+/* ===========================
+   AI Card
+   =========================== */
 .ai-aurora-card {
   position: relative;
   border-radius: var(--radius-md);
@@ -122,7 +145,6 @@ h1, h2, h3, h4, h5, h6 {
   border: 1px solid rgba(138, 116, 99, 0.15);
 }
 
-/* Ambient Natural Light Leak */
 .ai-aurora-card::before {
   content: '';
   position: absolute;
@@ -130,7 +152,7 @@ h1, h2, h3, h4, h5, h6 {
   left: -20%;
   width: 140%;
   height: 140%;
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, rgba(196, 155, 130, 0.12) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(94, 111, 98, 0.1) 0%, transparent 50%);
   animation: natural-drift 15s ease infinite alternate;
@@ -158,7 +180,9 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-mono);
 }
 
-/* Form Controls (Material 3 Expressive rounded & warm borders) */
+/* ===========================
+   Form Controls
+   =========================== */
 input, textarea, select {
   width: 100%;
   padding: 0.9rem 1.2rem;
@@ -167,16 +191,25 @@ input, textarea, select {
   border-radius: var(--radius-sm);
   color: var(--text-primary);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: 1rem; /* 16px+ prevents iOS zoom on focus */
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
   box-shadow: inset 0 1px 2px rgba(44, 38, 33, 0.02);
+  /* Prevent iOS from adding appearance */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input:focus, textarea:focus, select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--border-focus);
-  transform: translateY(-1px);
+}
+
+/* Mobile: disable focus transform (can cause layout shift) */
+@media (min-width: 641px) {
+  input:focus, textarea:focus, select:focus {
+    transform: translateY(-1px);
+  }
 }
 
 label, .form-label {
@@ -189,7 +222,62 @@ label, .form-label {
   text-transform: uppercase;
 }
 
-/* Buttons (Refined & bouncy transitions) */
+  .btn-sm-del {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+/* ===========================
+   Accessibility Utilities
+   =========================== */
+.skip-link {
+  position: absolute;
+  top: -100px;
+  left: 1rem;
+  background: var(--color-accent);
+  color: #FAF8F5;
+  padding: 0.75rem 1.25rem;
+  z-index: 10000;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 1rem;
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent) !important;
+  outline-offset: 2px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .reveal-on-scroll {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ===========================
+   Buttons
+   =========================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -205,6 +293,16 @@ label, .form-label {
   border: none;
   text-decoration: none;
   letter-spacing: 0.03em;
+  /* Touch target minimum */
+  min-height: var(--touch-target);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.btn-lg {
+  padding: 1.1rem 2rem;
+  font-size: 1rem;
+  min-height: 52px;
 }
 
 .btn-primary {
@@ -223,6 +321,17 @@ label, .form-label {
   transform: scale(0.98) translateY(0);
 }
 
+/* Disable hover transforms on touch */
+@media (hover: none) {
+  .btn-primary:hover {
+    transform: none;
+  }
+  .btn-primary:active {
+    transform: scale(0.96);
+    background-color: #4D5C51;
+  }
+}
+
 .btn-secondary {
   background: #FAF8F5;
   border: 1px solid rgba(94, 83, 74, 0.18);
@@ -235,6 +344,16 @@ label, .form-label {
   color: var(--text-primary);
   border-color: rgba(94, 83, 74, 0.3);
   transform: scale(1.02) translateY(-1px);
+}
+
+@media (hover: none) {
+  .btn-secondary:hover {
+    transform: none;
+  }
+  .btn-secondary:active {
+    background: #F3ECE3;
+    transform: scale(0.97);
+  }
 }
 
 .btn-ok {
@@ -250,6 +369,11 @@ label, .form-label {
   box-shadow: 0 6px 15px rgba(94, 111, 98, 0.15);
 }
 
+@media (hover: none) {
+  .btn-ok:hover { transform: none; }
+  .btn-ok.active { transform: none; }
+}
+
 .btn-maybe {
   background-color: rgba(208, 169, 126, 0.08);
   border: 1px solid var(--color-maybe);
@@ -261,6 +385,11 @@ label, .form-label {
   color: #FAF8F5;
   transform: scale(1.05) translateY(-2px);
   box-shadow: 0 6px 15px rgba(208, 169, 126, 0.15);
+}
+
+@media (hover: none) {
+  .btn-maybe:hover { transform: none; }
+  .btn-maybe.active { transform: none; }
 }
 
 .btn-ng {
@@ -276,7 +405,20 @@ label, .form-label {
   box-shadow: 0 6px 15px rgba(194, 134, 127, 0.15);
 }
 
-/* Scrollytelling & Reveal Animations */
+@media (hover: none) {
+  .btn-ng:hover { transform: none; }
+  .btn-ng.active { transform: none; }
+}
+
+.btn-sm {
+  padding: 0.6rem 1.2rem;
+  font-size: 0.85rem;
+  min-height: 38px;
+}
+
+/* ===========================
+   Scrollytelling Reveal
+   =========================== */
 .reveal-on-scroll {
   opacity: 0;
   transform: translateY(24px);
@@ -284,14 +426,59 @@ label, .form-label {
   will-change: transform, opacity;
 }
 
+/* On mobile, reduce translate for snappier feel */
+@media (max-width: 640px) {
+  .reveal-on-scroll {
+    transform: translateY(14px);
+    transition-duration: 0.6s;
+  }
+}
+
 .reveal-on-scroll.visible {
   opacity: 1;
   transform: translateY(0);
 }
 
-/* Container */
+/* ===========================
+   Container
+   =========================== */
 .container {
   max-width: 1000px;
   margin: 0 auto;
   padding: 0 1.5rem;
+}
+
+@media (max-width: 640px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
+
+/* ===========================
+   Mobile device class variants
+   Applied by JS via <body class="is-mobile">
+   =========================== */
+
+/* Safe area for notch devices */
+body.is-mobile main {
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+
+body.is-mobile .main-header {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+/* ===========================
+   Scroll snap for mobile tables
+   =========================== */
+@media (max-width: 640px) {
+  .table-wrapper {
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+
+  .table-wrapper table td,
+  .table-wrapper table th {
+    scroll-snap-align: start;
+  }
 }

@@ -224,22 +224,28 @@
   }
 </script>
 
+<!-- noindex: 管理画面は検索エンジンに表示しない -->
+<svelte:head>
+  <title>イベント管理 | 幹事ちゃん</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 <div class="container admin-event-container animate-fade-in">
   <div class="back-link-area">
     <a href="/admin" class="btn btn-secondary btn-sm">
-      <span class="material-symbols-rounded">arrow_back</span>
+      <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
       ダッシュボードに戻る
     </a>
   </div>
 
   {#if loading}
-    <div class="glass-panel loading-panel">
+    <div class="glass-panel loading-panel" role="status" aria-label="読み込み中">
       <div class="spinner"></div>
       <p>イベント管理データをロード中...</p>
     </div>
   {:else if errorMsg}
-    <div class="glass-panel error-panel-large">
-      <span class="material-symbols-rounded error-icon-lg">warning</span>
+    <div class="glass-panel error-panel-large" role="alert">
+      <span class="material-symbols-rounded error-icon-lg" aria-hidden="true">warning</span>
       <h2>エラーが発生しました</h2>
       <p>{errorMsg}</p>
       <a href="/admin" class="btn btn-primary">管理画面に戻る</a>
@@ -266,43 +272,51 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th>日程</th>
+                  <th scope="col">日程</th>
                   {#each event.responses as resp}
-                    <th>
+                    <th scope="col">
                       <div class="th-resp">
                         <span>{resp.respondent_name}</span>
-                        <button onclick={() => deleteResponse(resp.id, resp.respondent_name)} class="btn-del-resp" title="回答削除">
-                          <span class="material-symbols-rounded">close</span>
+                        <button 
+                          onclick={() => deleteResponse(resp.id, resp.respondent_name)} 
+                          class="btn-del-resp" 
+                          title="回答削除"
+                          aria-label={`「${resp.respondent_name}」の回答を削除`}
+                        >
+                          <span class="material-symbols-rounded" aria-hidden="true">close</span>
                         </button>
                       </div>
                     </th>
                   {/each}
-                  <th>〇 △ ×</th>
+                  <th scope="col">〇 △ ×</th>
                 </tr>
               </thead>
               <tbody>
                 {#each event.candidates as cand}
                   <tr class:confirmed-row={event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}>
-                    <td class="td-datetime font-mono">
+                    <th scope="row" class="td-datetime font-mono">
                       {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
                       {#if event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}
                         <span class="conf-label">確定</span>
                       {/if}
-                    </td>
+                    </th>
                     {#each event.responses as resp}
                       {@const ans = resp.answers.find(a => a.candidate_id === cand.id)}
                       <td class="td-status">
                         {#if ans}
-                          <span class={`status-sym ${ans.answer_status}`}>
+                          <span 
+                            class={`status-sym ${ans.answer_status}`}
+                            aria-label={ans.answer_status === 'ok' ? '可' : ans.answer_status === 'maybe' ? '条件付き可' : '不可'}
+                          >
                             {ans.answer_status === 'ok' ? '〇' : ans.answer_status === 'maybe' ? '△' : '×'}
                           </span>
                         {:else}
-                          -
+                          <span aria-label="未回答">-</span>
                         {/if}
                       </td>
                     {/each}
                     <td>
-                      <div class="stats-row">
+                      <div class="stats-row" aria-label={`〇 ${candidateStats[cand.id]?.ok || 0}件、△ ${candidateStats[cand.id]?.maybe || 0}件、× ${candidateStats[cand.id]?.ng || 0}件`}>
                         <span class="stat ok">〇 {candidateStats[cand.id]?.ok || 0}</span>
                         <span class="stat maybe">△ {candidateStats[cand.id]?.maybe || 0}</span>
                         <span class="stat ng">× {candidateStats[cand.id]?.ng || 0}</span>
@@ -321,14 +335,14 @@
         <!-- AI suggest request form -->
         <div class="ai-aurora-card ai-panel animate-fade-in">
           <div class="ai-panel-header">
-            <span class="material-symbols-rounded ai-icon">psychology</span>
+            <span class="material-symbols-rounded ai-icon" aria-hidden="true">psychology</span>
             <h3>AI日程選定アシスタント</h3>
           </div>
           <p class="ai-intro">回答データをもとに、AIが最適な開催日程を決定します。優先したい希望があれば入力してください。</p>
 
           {#if event.responses.length === 0}
-            <div class="ai-empty">
-              <span class="material-symbols-rounded">info</span>
+            <div class="ai-empty" role="status">
+              <span class="material-symbols-rounded" aria-hidden="true">info</span>
               <p>回答者がまだ集まっていません。日程提案には回答データが必要です。</p>
             </div>
           {:else}
@@ -350,7 +364,7 @@
                 onclick={runAIAnalysis}
                 disabled={isAnalyzing}
               >
-                <span class="material-symbols-rounded">auto_awesome</span>
+                <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
                 {isAnalyzing ? 'AIが提案作成中...' : 'AIに最適な日程を絞り込ませる'}
               </button>
             {/if}
@@ -362,7 +376,7 @@
               <hr class="divider-small" />
               <h4>AI推薦候補ランキング</h4>
               
-              <div class="suggestions-cards">
+              <div class="suggestions-cards" role="group" aria-label="AI推薦候補リスト">
                 {#each aiSuggestions.suggestions as sug}
                   {@const candidate = event.candidates.find(c => c.id === sug.candidate_id)}
                   {#if candidate}
@@ -371,6 +385,7 @@
                       class="sug-card glass-panel" 
                       class:active={selectedCandidateId === sug.candidate_id}
                       class:rank-1={sug.rank === 1}
+                      aria-pressed={selectedCandidateId === sug.candidate_id}
                       onclick={() => {
                         if (event?.status !== 'confirmed') {
                           selectedCandidateId = sug.candidate_id;
@@ -402,7 +417,7 @@
           
           {#if event.status === 'confirmed' && event.confirmed_candidate}
             <div class="finalized-box">
-              <span class="material-symbols-rounded ok-check">check_circle</span>
+              <span class="material-symbols-rounded ok-check" aria-hidden="true">check_circle</span>
               <div>
                 <p>確定済み日程</p>
                 <h4 class="font-mono">{formatDateTime(event.confirmed_candidate.event_date, event.confirmed_candidate.start_time, event.confirmed_candidate.end_time)}</h4>
@@ -440,7 +455,7 @@
               onclick={confirmSchedule}
               disabled={submitting || !selectedCandidateId}
             >
-              <span class="material-symbols-rounded">celebration</span>
+              <span class="material-symbols-rounded" aria-hidden="true">celebration</span>
               この日程で決定・確定する
             </button>
           {/if}

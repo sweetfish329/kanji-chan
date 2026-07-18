@@ -219,9 +219,15 @@
   }
 </script>
 
+<!-- noindex: 管理画面は検索エンジンに表示しない -->
+<svelte:head>
+  <title>ダッシュボード | 幹事ちゃん</title>
+  <meta name="robots" content="noindex, nofollow" />
+</svelte:head>
+
 <div class="container admin-container animate-fade-in">
   {#if loading}
-    <div class="glass-panel loading-panel">
+    <div class="glass-panel loading-panel" role="status" aria-label="読み込み中">
       <div class="spinner"></div>
       <p>ダッシュボードデータをロード中...</p>
     </div>
@@ -230,40 +236,48 @@
       <!-- Sidebar / Tab Selector -->
       <aside class="admin-sidebar glass-panel">
         <div class="sidebar-header">
-          <span class="material-symbols-rounded">admin_panel_settings</span>
+          <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
           <h3>幹事ダッシュボード</h3>
         </div>
-        <div class="sidebar-menu">
+        <div class="sidebar-menu" role="tablist" aria-label="ダッシュボードメニュー">
           <button 
             class="sidebar-btn" 
             class:active={activeTab === 'list'}
+            role="tab"
+            aria-selected={activeTab === 'list'}
             onclick={() => activeTab = 'list'}
           >
-            <span class="material-symbols-rounded">list_alt</span>
+            <span class="material-symbols-rounded" aria-hidden="true">list_alt</span>
             イベント一覧
           </button>
           <button 
             class="sidebar-btn" 
             class:active={activeTab === 'create-ai'}
+            role="tab"
+            aria-selected={activeTab === 'create-ai'}
             onclick={() => activeTab = 'create-ai'}
           >
-            <span class="material-symbols-rounded">auto_awesome</span>
+            <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
             AIでイベント作成
           </button>
           <button 
             class="sidebar-btn" 
             class:active={activeTab === 'create-manual'}
+            role="tab"
+            aria-selected={activeTab === 'create-manual'}
             onclick={() => activeTab = 'create-manual'}
           >
-            <span class="material-symbols-rounded">add_circle</span>
+            <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
             手動でイベント作成
           </button>
           <button 
             class="sidebar-btn" 
             class:active={activeTab === 'settings'}
+            role="tab"
+            aria-selected={activeTab === 'settings'}
             onclick={() => activeTab = 'settings'}
           >
-            <span class="material-symbols-rounded">settings</span>
+            <span class="material-symbols-rounded" aria-hidden="true">settings</span>
             AI設定 (APIキー)
           </button>
         </div>
@@ -276,7 +290,7 @@
             <h2 class="section-title">作成した調整イベント一覧</h2>
             {#if events.length === 0}
               <div class="empty-state">
-                <span class="material-symbols-rounded empty-icon">event_busy</span>
+                <span class="material-symbols-rounded empty-icon" aria-hidden="true">event_busy</span>
                 <p>まだ作成されたイベントはありません。</p>
                 <button class="btn btn-primary" onclick={() => activeTab = 'create-ai'}>
                   初のイベントを作成する
@@ -302,9 +316,10 @@
                       <button 
                         class="btn btn-danger btn-sm-del" 
                         title="イベント削除"
+                        aria-label={`イベント「${event.title}」を削除`}
                         onclick={() => deleteEvent(event.id, event.title)}
                       >
-                        <span class="material-symbols-rounded">delete</span>
+                        <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                       </button>
                     </div>
                   </div>
@@ -331,14 +346,14 @@
                 ></textarea>
               </div>
               <button type="submit" class="btn btn-primary" disabled={isParsing}>
-                <span class="material-symbols-rounded">auto_awesome</span>
+                <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
                 {isParsing ? 'AIが解析中...' : 'AIに日程を抽出してもらう'}
               </button>
             </form>
 
             {#if parseError}
-              <div class="error-banner glass-panel">
-                <span class="material-symbols-rounded">error</span>
+              <div class="error-banner glass-panel" role="alert">
+                <span class="material-symbols-rounded" aria-hidden="true">error</span>
                 <p>{parseError}</p>
               </div>
             {/if}
@@ -360,28 +375,31 @@
                 </div>
 
                 <div class="candidates-editor">
-                  <span class="form-label">日程候補スロット</span>
-                  {#each parsedCandidates as cand, index}
-                    <div class="candidate-row">
-                      <input type="date" bind:value={cand.event_date} />
-                      <input type="time" bind:value={cand.start_time} />
-                      <span class="time-separator">〜</span>
-                      <input type="time" bind:value={cand.end_time} />
-                      <button 
-                        type="button" 
-                        class="btn-icon" 
-                        onclick={() => removeCandidate(index, 'ai')}
-                      >
-                        <span class="material-symbols-rounded">delete</span>
-                      </button>
-                    </div>
-                  {/each}
+                  <span class="form-label" id="ai-cand-label">日程候補スロット</span>
+                  <div role="group" aria-labelledby="ai-cand-label">
+                    {#each parsedCandidates as cand, index}
+                      <div class="candidate-row">
+                        <input type="date" bind:value={cand.event_date} aria-label={`AI抽出 候補日 ${index + 1}`} />
+                        <input type="time" bind:value={cand.start_time} aria-label={`AI抽出 開始時刻 ${index + 1}`} />
+                        <span class="time-separator" aria-hidden="true">〜</span>
+                        <input type="time" bind:value={cand.end_time} aria-label={`AI抽出 終了時刻 ${index + 1}`} />
+                        <button 
+                          type="button" 
+                          class="btn-icon" 
+                          onclick={() => removeCandidate(index, 'ai')}
+                          aria-label={`候補日 ${index + 1} を削除`}
+                        >
+                          <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
+                    {/each}
+                  </div>
                   <button 
                     type="button" 
                     class="btn btn-secondary btn-sm add-cand-btn"
                     onclick={() => addCandidate('ai')}
                   >
-                    <span class="material-symbols-rounded">add</span>
+                    <span class="material-symbols-rounded" aria-hidden="true">add</span>
                     候補日時を追加
                   </button>
                 </div>
@@ -391,7 +409,7 @@
                   class="btn btn-primary btn-lg submit-event-btn"
                   onclick={() => submitEvent('ai')}
                 >
-                  <span class="material-symbols-rounded">check_circle</span>
+                  <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
                   この内容でイベントを確定作成
                 </button>
               </div>
@@ -424,28 +442,31 @@
             </div>
 
             <div class="candidates-editor">
-              <span class="form-label">日程候補スロット</span>
-              {#each manualCandidates as cand, index}
-                <div class="candidate-row">
-                  <input type="date" bind:value={cand.event_date} />
-                  <input type="time" bind:value={cand.start_time} />
-                  <span class="time-separator">〜</span>
-                  <input type="time" bind:value={cand.end_time} />
-                  <button 
-                    type="button" 
-                    class="btn-icon" 
-                    onclick={() => removeCandidate(index, 'manual')}
-                  >
-                    <span class="material-symbols-rounded">delete</span>
-                  </button>
-                </div>
-              {/each}
+              <span class="form-label" id="manual-cand-label">日程候補スロット</span>
+              <div role="group" aria-labelledby="manual-cand-label">
+                {#each manualCandidates as cand, index}
+                  <div class="candidate-row">
+                    <input type="date" bind:value={cand.event_date} aria-label={`手動入力 候補日 ${index + 1}`} />
+                    <input type="time" bind:value={cand.start_time} aria-label={`手動入力 開始時刻 ${index + 1}`} />
+                    <span class="time-separator" aria-hidden="true">〜</span>
+                    <input type="time" bind:value={cand.end_time} aria-label={`手動入力 終了時刻 ${index + 1}`} />
+                    <button 
+                      type="button" 
+                      class="btn-icon" 
+                      onclick={() => removeCandidate(index, 'manual')}
+                      aria-label={`候補日 ${index + 1} を削除`}
+                    >
+                      <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                    </button>
+                  </div>
+                {/each}
+              </div>
               <button 
                 type="button" 
                 class="btn btn-secondary btn-sm add-cand-btn"
                 onclick={() => addCandidate('manual')}
               >
-                <span class="material-symbols-rounded">add</span>
+                <span class="material-symbols-rounded" aria-hidden="true">add</span>
                 候補日時を追加
               </button>
             </div>
@@ -455,7 +476,7 @@
               class="btn btn-primary btn-lg submit-event-btn"
               onclick={() => submitEvent('manual')}
             >
-              <span class="material-symbols-rounded">check_circle</span>
+              <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
               イベントを作成
             </button>
           </div>
@@ -482,11 +503,11 @@
               </div>
 
               {#if apiKeyUpdateSuccess}
-                <p class="success-text">{apiKeyUpdateSuccess}</p>
+                <p class="success-text" role="status">{apiKeyUpdateSuccess}</p>
               {/if}
 
               <button type="submit" class="btn btn-primary">
-                <span class="material-symbols-rounded">save</span>
+                <span class="material-symbols-rounded" aria-hidden="true">save</span>
                 設定を保存する
               </button>
             </form>
