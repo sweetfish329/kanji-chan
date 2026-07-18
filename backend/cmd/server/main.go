@@ -159,7 +159,6 @@ Sitemap: %s/sitemap.xml
 			return nil
 		}
 
-
 		// ==========================================
 		// SEO: X-Robots-Tag HTTPヘッダーの設定
 		// ルートページのみ index, それ以外の HTML ページは noindex
@@ -211,7 +210,6 @@ Sitemap: %s/sitemap.xml
 		http.ServeContent(c.Response(), c.Request(), "index.html", stat.ModTime(), seeker)
 		return nil
 	})
-
 
 	log.Printf("Starting Kanji-Chan backend server on port %s...", port)
 	if err := e.Start(":" + port); err != nil {

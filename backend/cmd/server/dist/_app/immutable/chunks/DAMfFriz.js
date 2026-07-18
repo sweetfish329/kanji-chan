@@ -1,0 +1,1 @@
+function e(e,t={threshold:.1,rootMargin:`0px 0px -50px 0px`}){let n=new IntersectionObserver(t=>{t.forEach(t=>{t.isIntersecting&&(e.classList.add(`visible`),n.unobserve(e))})},t);return e.classList.add(`reveal-on-scroll`),setTimeout(()=>{n.observe(e)},50),{destroy(){n.disconnect()}}}export{e as t};
