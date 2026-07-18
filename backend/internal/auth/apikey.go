@@ -27,7 +27,7 @@ func GenerateAPIKey(name string, userID uint) (string, *model.ApiKey, error) {
 	}
 
 	rawKey := APIKeyPrefix + hex.EncodeToString(bytes) // 例: kc_6f... (67文字)
-	
+
 	// SHA-256 ハッシュを算出
 	hash := sha256.Sum256([]byte(rawKey))
 	keyHash := hex.EncodeToString(hash[:])

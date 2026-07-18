@@ -295,9 +295,8 @@
   }
 </script>
 
-<!-- noindex: イベントページは検索エンジンに表示しない -->
 <svelte:head>
-  <title>{event ? `${event.title} | 幹事ちゃん` : '幹事ちゃん'}</title>
+  <title>{event ? `「${event.title}」の出欠入力・日程調整 | 幹事ちゃん` : '日程調整 | 幹事ちゃん'}</title>
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
@@ -20,12 +19,12 @@ const (
 	geminiModelName = "gemini-2.5-flash"
 )
 
-// getAPIKey 優先順位: 幹事ユーザーが個別に設定したAPIキー > 環境変数
+// getAPIKey 幹事ユーザーが個別に設定したAPIキーを取得 (環境変数へのフォールバックは行わない)
 func getAPIKey(user *model.User) string {
-	if user != nil && user.GeminiAPIKey != "" {
+	if user != nil {
 		return user.GeminiAPIKey
 	}
-	return os.Getenv("GEMINI_API_KEY")
+	return ""
 }
 
 // ParsedEventResponse 自然文パース結果のフロントエンド用レスポンス
@@ -43,7 +42,7 @@ type ParsedEventResponse struct {
 func ParseEvent(ctx context.Context, text string, user *model.User) (*ParsedEventResponse, error) {
 	apiKey := getAPIKey(user)
 	if apiKey == "" {
-		return nil, fmt.Errorf("Gemini API key is not configured")
+		return nil, fmt.Errorf("Gemini APIキーが設定されていません。設定画面からGemini APIキーを登録するとAI機能を利用できます。")
 	}
 
 	// 1. モデルの初期化
@@ -162,7 +161,7 @@ type AISuggestionResponse struct {
 func SuggestSchedule(ctx context.Context, event *model.Event, preferences string, user *model.User) (*AISuggestionResponse, error) {
 	apiKey := getAPIKey(user)
 	if apiKey == "" {
-		return nil, fmt.Errorf("Gemini API key is not configured")
+		return nil, fmt.Errorf("Gemini APIキーが設定されていません。設定画面からGemini APIキーを登録するとAI機能を利用できます。")
 	}
 
 	// 1. モデルの初期化

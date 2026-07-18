@@ -1,54 +1,57 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap');
 
 :root {
-  /* Color Palette (Warm Neutral & Clay Earth) */
-  --bg-primary: #FAF8F5;
-  --bg-secondary: #F3ECE3;
-  --bg-glass: rgba(250, 248, 245, 0.75);
-  --border-glass: rgba(94, 83, 74, 0.1);
-  --border-focus: rgba(138, 116, 99, 0.4);
+  /* Design Tokens: Japanese Warm Modernism (和モダン) */
+  --bg-primary: #F8F6F0;
+  --bg-secondary: #EFE8DC;
+  --bg-glass: rgba(248, 246, 240, 0.82);
+  --border-glass: rgba(42, 64, 50, 0.08);
+  --border-focus: rgba(212, 140, 56, 0.45);
 
-  --text-primary: #2C2621;
-  --text-secondary: #5E534A;
-  --text-muted: #93857B;
+  --text-primary: #1C241E;
+  --text-secondary: #4A544C;
+  --text-muted: #8C948B;
 
-  --color-primary: #8A7463;
-  --color-secondary: #C49B82;
-  --color-accent: #5E6F62;
-  --gradient-brand: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  --color-primary: #2A4032;   /* 深い常磐色 (Tokiwa Green) */
+  --color-secondary: #7A6251; /* 古木色 (Aged Wood) */
+  --color-accent: #D48C38;    /* 琥珀色 (Amber Gold) */
+  --gradient-brand: linear-gradient(135deg, #2A4032 0%, #44614E 50%, #D48C38 100%);
+  --gradient-gold: linear-gradient(135deg, #D48C38 0%, #F0BA66 100%);
 
-  --color-ok: #5E6F62;
-  --color-maybe: #D0A97E;
-  --color-ng: #C2867F;
+  /* Hanko Stamp Status Colors */
+  --color-ok: #2A543A;       /* 翡翠緑 */
+  --color-maybe: #C68A36;    /* 山吹金 */
+  --color-ng: #B84A41;       /* 朱赤 */
 
   /* Typography */
-  --font-display: 'Playfair Display', serif;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, sans-serif;
+  --font-display: 'Zen Kaku Gothic New', 'Plus Jakarta Sans', sans-serif;
+  --font-sans: 'Zen Kaku Gothic New', 'Plus Jakarta Sans', -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* Shadows & Radius */
-  --shadow-sm: 0 4px 12px rgba(44, 38, 33, 0.04);
-  --shadow-md: 0 12px 36px rgba(44, 38, 33, 0.08);
-  --shadow-lg: 0 24px 60px rgba(44, 38, 33, 0.12);
-  --shadow-inset: inset 0 2px 4px rgba(255, 255, 255, 0.8);
+  --shadow-sm: 0 4px 14px rgba(28, 36, 30, 0.04);
+  --shadow-md: 0 12px 36px rgba(28, 36, 30, 0.07), 0 2px 8px rgba(28, 36, 30, 0.03);
+  --shadow-lg: 0 24px 64px rgba(28, 36, 30, 0.11), 0 4px 16px rgba(42, 64, 50, 0.05);
+  --shadow-inset: inset 0 1px 2px rgba(255, 255, 255, 0.9);
 
   --radius-sm: 12px;
-  --radius-md: 24px;
-  --radius-lg: 32px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
   --radius-full: 9999px;
 
   /* Transitions */
-  --transition-fast: 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
-  --transition-normal: 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 0.18s cubic-bezier(0.25, 0.8, 0.25, 1);
+  --transition-normal: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-spring: 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Toast */
-  --toastBackground: rgba(44, 38, 33, 0.95);
+  --toastBackground: rgba(28, 36, 30, 0.96);
   --toastBarBackground: var(--color-accent);
-  --toastColor: #FAF8F5;
+  --toastColor: #F8F6F0;
   --toastMinHeight: 3.5rem;
   --toastBorderRadius: var(--radius-sm);
   --toastBoxShadow: var(--shadow-md);
-  --toastBorder: 1px solid rgba(250, 248, 245, 0.15);
+  --toastBorder: 1px solid rgba(248, 246, 240, 0.15);
 
   /* Mobile touch target minimum */
   --touch-target: 44px;
@@ -358,57 +361,60 @@ label, .form-label {
 }
 
 .btn-ok {
-  background-color: rgba(94, 111, 98, 0.08);
-  border: 1px solid var(--color-ok);
+  background-color: rgba(42, 84, 58, 0.08);
+  border: 1.5px solid var(--color-ok);
   color: var(--color-ok);
+  position: relative;
+  transition: all 0.25s var(--transition-spring);
 }
 
 .btn-ok:hover, .btn-ok.active {
   background-color: var(--color-ok);
-  color: #FAF8F5;
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 6px 15px rgba(94, 111, 98, 0.15);
+  color: #F8F6F0;
+  transform: scale(1.08) rotate(-1.5deg);
+  box-shadow: 0 8px 20px rgba(42, 84, 58, 0.28);
 }
 
-@media (hover: none) {
-  .btn-ok:hover { transform: none; }
-  .btn-ok.active { transform: none; }
+.btn-ok:active {
+  transform: scale(0.94) rotate(1deg);
 }
 
 .btn-maybe {
-  background-color: rgba(208, 169, 126, 0.08);
-  border: 1px solid var(--color-maybe);
+  background-color: rgba(198, 138, 54, 0.08);
+  border: 1.5px solid var(--color-maybe);
   color: var(--color-maybe);
+  position: relative;
+  transition: all 0.25s var(--transition-spring);
 }
 
 .btn-maybe:hover, .btn-maybe.active {
   background-color: var(--color-maybe);
-  color: #FAF8F5;
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 6px 15px rgba(208, 169, 126, 0.15);
+  color: #F8F6F0;
+  transform: scale(1.08) rotate(-1.5deg);
+  box-shadow: 0 8px 20px rgba(198, 138, 54, 0.28);
 }
 
-@media (hover: none) {
-  .btn-maybe:hover { transform: none; }
-  .btn-maybe.active { transform: none; }
+.btn-maybe:active {
+  transform: scale(0.94) rotate(1deg);
 }
 
 .btn-ng {
-  background-color: rgba(194, 134, 127, 0.08);
-  border: 1px solid var(--color-ng);
+  background-color: rgba(184, 74, 65, 0.08);
+  border: 1.5px solid var(--color-ng);
   color: var(--color-ng);
+  position: relative;
+  transition: all 0.25s var(--transition-spring);
 }
 
 .btn-ng:hover, .btn-ng.active {
   background-color: var(--color-ng);
-  color: #FAF8F5;
-  transform: scale(1.05) translateY(-2px);
-  box-shadow: 0 6px 15px rgba(194, 134, 127, 0.15);
+  color: #F8F6F0;
+  transform: scale(1.08) rotate(-1.5deg);
+  box-shadow: 0 8px 20px rgba(184, 74, 65, 0.28);
 }
 
-@media (hover: none) {
-  .btn-ng:hover { transform: none; }
-  .btn-ng.active { transform: none; }
+.btn-ng:active {
+  transform: scale(0.94) rotate(1deg);
 }
 
 .btn-sm {

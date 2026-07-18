@@ -82,8 +82,13 @@
 <header class="main-header">
   <div class="container nav-container">
     <a href="/" class="logo" aria-label="幹事ちゃん トップページ">
-      <span class="material-symbols-rounded logo-icon" aria-hidden="true">calendar_today</span>
-      <span class="logo-text gradient-text">幹事ちゃん</span>
+      <div class="logo-badge">
+        <span class="material-symbols-rounded logo-icon" aria-hidden="true">event_seat</span>
+      </div>
+      <div class="logo-text-wrapper">
+        <span class="logo-text">幹事ちゃん</span>
+        <span class="logo-sub">AI スケジュール調整</span>
+      </div>
     </a>
 
     <!-- Desktop Nav -->
@@ -92,14 +97,17 @@
         <span class="loading-dots" role="status">読み込み中...</span>
       {:else if user}
         <div class="user-menu">
-          <span class="welcome-text">こんにちは、<strong>{user.name}</strong> さん</span>
-          <a href="/admin" class="btn btn-secondary btn-sm-nav">ダッシュボード</a>
+          <span class="welcome-text">ようこそ、<strong>{user.name}</strong> 幹事</span>
+          <a href="/admin" class="btn btn-secondary btn-sm-nav">
+            <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
+            ダッシュボード
+          </a>
           <button onclick={logout} class="btn btn-secondary btn-sm-nav">ログアウト</button>
         </div>
       {:else}
         <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary btn-sm-nav">
           <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
-          AI機能を使うにはログイン
+          幹事ログイン / AI機能
         </a>
       {/if}
     </nav>
@@ -140,13 +148,13 @@
           <div class="mobile-ai-banner">
             <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
             <div>
-              <p class="mobile-ai-title">AI機能を使うには</p>
-              <p class="mobile-ai-sub">自然文での日程作成やAI分析が利用できます</p>
+              <p class="mobile-ai-title">AIアシスタント機能</p>
+              <p class="mobile-ai-sub">自然文での日程自動抽出や集計結果のAI最適化が利用できます</p>
             </div>
           </div>
           <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary w-full mobile-login-btn" onclick={() => mobileMenuOpen = false}>
             <span class="material-symbols-rounded" aria-hidden="true">login</span>
-            ログインしてAIを使う
+            ログインしてAI機能を使う
           </a>
         {/if}
       </div>
@@ -162,7 +170,11 @@
 
 <footer class="main-footer">
   <div class="container footer-content">
-    <p>&copy; 2026 幹事ちゃん - AIサポート日程調整ツール</p>
+    <div class="footer-brand">
+      <span class="footer-logo-text">幹事ちゃん</span>
+      <span class="footer-tagline">集いと調和を届ける、AI日程調整プラットフォーム</span>
+    </div>
+    <p class="copyright">&copy; 2026 幹事ちゃん (Kanji-Chan). All rights reserved.</p>
   </div>
 </footer>
 
@@ -187,20 +199,43 @@
   .logo {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 0.75rem;
     text-decoration: none;
   }
 
+  .logo-badge {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    background: var(--gradient-brand);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(42, 64, 50, 0.2);
+  }
+
   .logo-icon {
-    color: var(--color-accent);
-    font-size: 1.5rem;
+    color: #F8F6F0;
+    font-size: 1.3rem;
+  }
+
+  .logo-text-wrapper {
+    display: flex;
+    flex-direction: column;
   }
 
   .logo-text {
     font-family: var(--font-display);
-    font-size: 1.4rem;
-    font-weight: 500;
-    letter-spacing: -0.01em;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.1;
+  }
+
+  .logo-sub {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
   }
 
   /* Desktop Nav */
@@ -364,11 +399,41 @@
 
   .main-footer {
     border-top: 1px solid var(--border-glass);
-    padding: 2rem 0;
+    padding: 2.5rem 0;
+    background: rgba(239, 232, 220, 0.4);
+  }
+
+  .footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
     text-align: center;
+  }
+
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .footer-logo-text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--color-primary);
+  }
+
+  .footer-tagline {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .copyright {
     color: var(--text-muted);
-    font-size: 0.8rem;
-    letter-spacing: 0.02em;
+    font-size: 0.78rem;
   }
 
   /* ==============================

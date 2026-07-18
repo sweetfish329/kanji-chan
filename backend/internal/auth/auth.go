@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"time"
@@ -22,9 +24,13 @@ func InitAuth() {
 	clientSecret := os.Getenv("OAUTH_CLIENT_SECRET")
 	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
 	sessionSecret := os.Getenv("SESSION_SECRET")
-
 	if sessionSecret == "" {
-		sessionSecret = "kanji-chan-default-secret-key"
+		bytes := make([]byte, 32)
+		if _, err := rand.Read(bytes); err == nil {
+			sessionSecret = hex.EncodeToString(bytes)
+		} else {
+			sessionSecret = fmt.Sprintf("kanji-chan-secret-%d", time.Now().UnixNano())
+		}
 	}
 	jwtSecret = []byte(sessionSecret)
 

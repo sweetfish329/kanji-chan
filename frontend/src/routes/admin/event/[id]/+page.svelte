@@ -109,10 +109,19 @@
     return stats;
   });
 
+  let aiStep = $state(0);
+  let aiTimer: ReturnType<typeof setInterval> | null = null;
+
   // AI に日程絞り込みを依頼
   async function runAIAnalysis() {
     isAnalyzing = true;
     aiSuggestions = null;
+    aiStep = 0;
+
+    if (aiTimer) clearInterval(aiTimer);
+    aiTimer = setInterval(() => {
+      aiStep = (aiStep + 1) % 3;
+    }, 1000);
     
     try {
       const data = await api.post<AISuggestionsResponse>('/ai/suggest-schedule', {
@@ -125,7 +134,7 @@
       if (data.suggestions && data.suggestions.length > 0) {
         selectedCandidateId = data.suggestions[0].candidate_id;
       }
-      toast.push('AIの予定推薦が完了しました！');
+      toast.push('✨ AIによる最適日程の推薦が完了しました！');
     } catch (err: any) {
       toast.push('AI推薦に失敗しました: ' + err.message, {
         theme: {
@@ -134,6 +143,7 @@
         }
       });
     } finally {
+      if (aiTimer) clearInterval(aiTimer);
       isAnalyzing = false;
     }
   }
@@ -224,9 +234,8 @@
   }
 </script>
 
-<!-- noindex: 管理画面は検索エンジンに表示しない -->
 <svelte:head>
-  <title>イベント管理 | 幹事ちゃん</title>
+  <title>{event ? `「${event.title}」の管理・AI提案 | 幹事ちゃん` : 'イベント管理 | 幹事ちゃん'}</title>
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
@@ -360,31 +369,54 @@
             {#if event.status !== 'confirmed'}
               <button 
                 type="button" 
-                class="btn btn-primary w-full" 
+                class="btn btn-primary w-full ai-analyze-btn" 
+                class:analyzing={isAnalyzing}
                 onclick={runAIAnalysis}
                 disabled={isAnalyzing}
               >
-                <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
-                {isAnalyzing ? 'AIが提案作成中...' : 'AIに最適な日程を絞り込ませる'}
+                <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isAnalyzing} aria-hidden="true">auto_awesome</span>
+                {isAnalyzing ? 'AIが最適日程を推論中...' : 'AIに最適な日程を絞り込ませる'}
               </button>
             {/if}
           {/if}
 
+          {#if isAnalyzing}
+            <div class="ai-loading-card glass-panel animate-fade-in" role="status">
+              <div class="shimmer-bar"></div>
+              <div class="loading-status-content">
+                <div class="ai-pulse-orb"></div>
+                <div class="loading-text-wrapper">
+                  {#if aiStep === 0}
+                    <p class="step-text animate-slide-up">📊 全参加者の〇△×回答スコアを集計中...</p>
+                  {:else if aiStep === 1}
+                    <p class="step-text animate-slide-up">🔍 幹事のこだわり希望条件を検証中...</p>
+                  {:else}
+                    <p class="step-text animate-slide-up">⭐ 最適開催日時のランキングを作成中...</p>
+                  {/if}
+                </div>
+              </div>
+            </div>
+          {/if}
+
           <!-- AI suggestions results -->
-          {#if aiSuggestions}
+          {#if aiSuggestions && !isAnalyzing}
             <div class="ai-results animate-fade-in">
               <hr class="divider-small" />
-              <h4>AI推薦候補ランキング</h4>
+              <div class="results-title-row">
+                <span class="material-symbols-rounded spark-glow" aria-hidden="true">auto_awesome</span>
+                <h4>AI推薦候補ランキング</h4>
+              </div>
               
               <div class="suggestions-cards" role="group" aria-label="AI推薦候補リスト">
-                {#each aiSuggestions.suggestions as sug}
+                {#each aiSuggestions.suggestions as sug, index}
                   {@const candidate = event.candidates.find(c => c.id === sug.candidate_id)}
                   {#if candidate}
                     <button 
                       type="button"
-                      class="sug-card glass-panel" 
+                      class="sug-card glass-panel animated-sug-card" 
                       class:active={selectedCandidateId === sug.candidate_id}
                       class:rank-1={sug.rank === 1}
+                      style="animation-delay: {index * 0.1}s"
                       aria-pressed={selectedCandidateId === sug.candidate_id}
                       onclick={() => {
                         if (event?.status !== 'confirmed') {
@@ -393,18 +425,29 @@
                       }}
                     >
                       <div class="sug-card-header">
-                        <span class="rank-badge">第 {sug.rank} 候補</span>
-                        <span class="score-badge">スコア: {sug.score}</span>
+                        <span class="rank-badge" class:gold={sug.rank === 1}>
+                          {sug.rank === 1 ? '👑 第 1 推薦' : `第 ${sug.rank} 候補`}
+                        </span>
+                        <span class="score-badge">スコア: {sug.score}pt</span>
                       </div>
                       <h5 class="font-mono">{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
                       <p class="sug-reason">{sug.reason}</p>
+                      {#if selectedCandidateId === sug.candidate_id}
+                        <div class="selected-check-badge bounce-in">
+                          <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                          選択中
+                        </div>
+                      {/if}
                     </button>
                   {/if}
                 {/each}
               </div>
 
-              <div class="overall-box glass-panel">
-                <h5>全体分析レビュー</h5>
+              <div class="overall-box glass-panel animate-fade-in">
+                <div class="overall-header">
+                  <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
+                  <h5>全体分析レビュー</h5>
+                </div>
                 <p>{aiSuggestions.overall_analysis}</p>
               </div>
             </div>
@@ -783,5 +826,155 @@
 
   .select-confirm-group {
     margin-bottom: 1.5rem;
+  }
+
+  /* AI Animation Styles */
+  .ai-sparkle-icon.spin {
+    animation: rotateSparkle 1.5s infinite linear;
+  }
+
+  @keyframes rotateSparkle {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  .results-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: var(--color-primary);
+  }
+
+  .spark-glow {
+    color: var(--color-accent);
+    animation: pulseGlow 2s infinite ease-in-out;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px var(--color-accent)); }
+    50% { transform: scale(1.2); filter: drop-shadow(0 0 8px var(--color-accent)); }
+  }
+
+  .animated-sug-card {
+    animation: cardSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  @keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animated-sug-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  .rank-badge.gold {
+    background: linear-gradient(135deg, #d4af37, #f3e5ab);
+    color: #3a2e05;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+  }
+
+  .sug-card.rank-1 {
+    border: 2px solid #d4af37;
+    background: linear-gradient(135deg, #FAF8F5, rgba(212, 175, 55, 0.08));
+  }
+
+  .selected-check-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-ok);
+  }
+
+  .bounce-in {
+    animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes bounceIn {
+    0% { transform: scale(0.7); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .overall-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--color-primary);
+  }
+
+  .ai-loading-card {
+    position: relative;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(94, 111, 98, 0.08), rgba(208, 169, 126, 0.08));
+    border: 1px solid var(--color-accent);
+    overflow: hidden;
+  }
+
+  .shimmer-bar {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    animation: shimmerSlide 2s infinite;
+  }
+
+  @keyframes shimmerSlide {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .loading-status-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .ai-pulse-orb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 0 rgba(208, 169, 126, 0.7);
+    animation: pulseOrb 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+  }
+
+  @keyframes pulseOrb {
+    to {
+      box-shadow: 0 0 0 16px rgba(208, 169, 126, 0);
+    }
+  }
+
+  .loading-text-wrapper {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .step-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .animate-slide-up {
+    animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 </style>

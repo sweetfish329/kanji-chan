@@ -58,6 +58,30 @@
   let parsedDescription = $state('');
   let parsedCandidates = $state<CandidateInput[]>([]);
 
+  // AI Prompt Templates
+  const aiTemplates = [
+    {
+      label: '🍻 渋谷で懇親会',
+      text: '来週の平日夜（月曜〜水曜）で、新宿・渋谷付近で3名で懇親会をやりたい。時間は19時〜21時で、候補日は3つ出してください。'
+    },
+    {
+      label: '💻 チーム開発MTG',
+      text: '来週の木曜日か金曜日の午後（14:00〜17:00）の枠で、オンライン開発ミーティングを1時間やりたい。候補を3つ挙げてください。'
+    },
+    {
+      label: '☕ 週末カフェ勉強会',
+      text: '今週末の土曜・日曜の13時〜16時で、カフェ勉強会を開催したいです。土日それぞれ候補を出して。'
+    }
+  ];
+
+  let parsingStep = $state(0);
+  let parsingTimer: ReturnType<typeof setInterval> | null = null;
+
+  function applyAiTemplate(text: string) {
+    aiTextInput = text;
+    toast.push('テンプレートを入力エリアにセットしました');
+  }
+
   // Manual Creation state
   let manualTitle = $state('');
   let manualDescription = $state('');
@@ -160,6 +184,12 @@
     
     isParsing = true;
     parseError = '';
+    parsingStep = 0;
+
+    if (parsingTimer) clearInterval(parsingTimer);
+    parsingTimer = setInterval(() => {
+      parsingStep = (parsingStep + 1) % 3;
+    }, 1000);
     
     try {
       const result = await api.post<{ title: string; description: string; candidates: CandidateInput[] }>(
@@ -170,7 +200,7 @@
       parsedTitle = result.title;
       parsedDescription = result.description;
       parsedCandidates = result.candidates;
-      toast.push('自然文の解析が完了しました！');
+      toast.push('✨ AIによる自然文の解析が完了しました！');
     } catch (err) {
       const msg = err instanceof Error ? err.message : '解析に失敗しました。';
       parseError = msg + ' APIキーが設定されているか確認してください。';
@@ -285,9 +315,8 @@
   }
 </script>
 
-<!-- noindex: 管理画面は検索エンジンに表示しない -->
 <svelte:head>
-  <title>ダッシュボード | 幹事ちゃん</title>
+  <title>幹事ダッシュボード | 幹事ちゃん</title>
   <meta name="robots" content="noindex, nofollow" />
 </svelte:head>
 
@@ -397,9 +426,25 @@
         {:else if activeTab === 'create-ai'}
           <div class="glass-panel">
             <h2 class="section-title">
-              <span class="gradient-text">AIアシスタントでイベント作成</span>
+              <span class="gradient-text">✨ AIアシスタントでイベント作成</span>
             </h2>
-            <p class="tab-intro">やりたいイベントの内容や日時の希望を自然文で書くと、AIが調整用の日程候補を抽出します。</p>
+            <p class="tab-intro">やりたいイベントの内容や日時の希望を自然文で書くと、AIが調整用の日程候補を自動抽出します。</p>
+
+            <!-- Quick Template Chips -->
+            <div class="template-chips-area">
+              <span class="chips-label">💡 ワンタップ入力テンプレート:</span>
+              <div class="chips-list">
+                {#each aiTemplates as tpl}
+                  <button 
+                    type="button" 
+                    class="chip-btn"
+                    onclick={() => applyAiTemplate(tpl.text)}
+                  >
+                    {tpl.label}
+                  </button>
+                {/each}
+              </div>
+            </div>
             
             <form onsubmit={parseNaturalLanguage} class="ai-prompt-form">
               <div class="form-group">
@@ -407,15 +452,34 @@
                 <textarea 
                   id="ai-text" 
                   rows="4" 
-                  placeholder="e.g. 来週の平日（月曜〜水曜）の19時以降で、新宿付近で3人〜4人で懇親会をやりたい。時間は2時間程度で。候補日は3個くらい出して。"
+                  placeholder="e.g. 来週の平日（月曜〜水曜）の19時以降で、新宿付近で3名で懇親会をやりたい。時間は2時間程度で。候補日は3個くらい出して。"
                   bind:value={aiTextInput}
+                  disabled={isParsing}
                 ></textarea>
               </div>
-              <button type="submit" class="btn btn-primary" disabled={isParsing}>
-                <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
+              <button type="submit" class="btn btn-primary ai-submit-btn" class:parsing={isParsing} disabled={isParsing}>
+                <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isParsing} aria-hidden="true">auto_awesome</span>
                 {isParsing ? 'AIが解析中...' : 'AIに日程を抽出してもらう'}
               </button>
             </form>
+
+            {#if isParsing}
+              <div class="ai-loading-card glass-panel animate-fade-in" role="status">
+                <div class="shimmer-bar"></div>
+                <div class="loading-status-content">
+                  <div class="ai-pulse-orb"></div>
+                  <div class="loading-text-wrapper">
+                    {#if parsingStep === 0}
+                      <p class="step-text animate-slide-up">🧠 自然文の文章・希望条件を解析中...</p>
+                    {:else if parsingStep === 1}
+                      <p class="step-text animate-slide-up">📅 日時フォーマット・候補日スロットを抽出中...</p>
+                    {:else}
+                      <p class="step-text animate-slide-up">✍️ イベントタイトルと説明文を生成中...</p>
+                    {/if}
+                  </div>
+                </div>
+              </div>
+            {/if}
 
             {#if parseError}
               <div class="error-banner glass-panel" role="alert">
@@ -424,11 +488,14 @@
               </div>
             {/if}
 
-            {#if parsedTitle}
+            {#if parsedTitle && !isParsing}
               <div class="parsed-result-area animate-fade-in">
                 <hr class="divider" />
-                <h3>AI抽出結果の確認・修正</h3>
-                <p class="helper-text">必要に応じて、内容や日程候補を修正・追加して確定してください。</p>
+                <div class="result-header-badge">
+                  <span class="material-symbols-rounded spark-icon" aria-hidden="true">auto_awesome</span>
+                  <h3>AI抽出結果の確認・修正</h3>
+                </div>
+                <p class="helper-text">抽出された内容と日程候補です。必要に応じて微調整して確定してください。</p>
 
                 <div class="form-group">
                   <label for="parsed-title">イベント名</label>
@@ -444,7 +511,8 @@
                   <span class="form-label" id="ai-cand-label">日程候補スロット</span>
                   <div role="group" aria-labelledby="ai-cand-label">
                     {#each parsedCandidates as cand, index}
-                      <div class="candidate-row">
+                      <div class="candidate-row animated-row" style="animation-delay: {index * 0.08}s">
+                        <span class="row-num font-mono">{index + 1}</span>
                         <input type="date" bind:value={cand.event_date} aria-label={`AI抽出 候補日 ${index + 1}`} />
                         <input type="time" bind:value={cand.start_time} aria-label={`AI抽出 開始時刻 ${index + 1}`} />
                         <span class="time-separator" aria-hidden="true">〜</span>
@@ -472,7 +540,7 @@
 
                 <button 
                   type="button" 
-                  class="btn btn-primary btn-lg submit-event-btn"
+                  class="btn btn-primary btn-lg submit-event-btn pulse-glow"
                   onclick={() => submitEvent('ai')}
                 >
                   <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
@@ -1174,5 +1242,168 @@ X-API-Key: kc_your_api_key_here</code></pre>
     margin-top: 0.5rem;
     overflow-x: auto;
     font-size: 0.85rem;
+  }
+
+  /* AI UI Animation & Enhancements */
+  .template-chips-area {
+    margin-bottom: 1.25rem;
+  }
+
+  .chips-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .chip-btn {
+    background: rgba(94, 111, 98, 0.08);
+    border: 1px solid rgba(94, 111, 98, 0.2);
+    color: var(--color-primary);
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--radius-full);
+    font-size: 0.83rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chip-btn:hover {
+    background: var(--color-primary);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(94, 111, 98, 0.25);
+  }
+
+  .ai-submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .ai-submit-btn.parsing {
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+  }
+
+  .ai-sparkle-icon.spin {
+    animation: rotateSparkle 1.5s infinite linear;
+  }
+
+  @keyframes rotateSparkle {
+    0% { transform: rotate(0deg) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  .ai-loading-card {
+    position: relative;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(94, 111, 98, 0.08), rgba(208, 169, 126, 0.08));
+    border: 1px solid var(--color-accent);
+    overflow: hidden;
+  }
+
+  .shimmer-bar {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
+    animation: shimmerSlide 2s infinite;
+  }
+
+  @keyframes shimmerSlide {
+    0% { left: -100%; }
+    100% { left: 100%; }
+  }
+
+  .loading-status-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .ai-pulse-orb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    box-shadow: 0 0 0 0 rgba(208, 169, 126, 0.7);
+    animation: pulseOrb 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+  }
+
+  @keyframes pulseOrb {
+    to {
+      box-shadow: 0 0 0 16px rgba(208, 169, 126, 0);
+    }
+  }
+
+  .loading-text-wrapper {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .step-text {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .animate-slide-up {
+    animation: slideUpFade 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .result-header-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--color-primary);
+    margin-bottom: 0.25rem;
+  }
+
+  .spark-icon {
+    color: var(--color-accent);
+  }
+
+  .candidate-row.animated-row {
+    animation: rowFadeIn 0.4s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes rowFadeIn {
+    to { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(8px); }
+  }
+
+  .row-num {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    min-width: 1.2rem;
+  }
+
+  .pulse-glow {
+    animation: pulseButtonGlow 2.5s infinite;
+  }
+
+  @keyframes pulseButtonGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(94, 111, 98, 0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(94, 111, 98, 0); }
   }
 </style>
