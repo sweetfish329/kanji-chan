@@ -1,0 +1,82 @@
+# 幹事ちゃん (Kanji-Chan)
+
+> Kanji-Chan (幹事ちゃん) is an AI-assisted scheduling web application inspired by Japan's popular "Chouseisan" (調整さん), extended with Google Gemini API / ADK integration, Svelte 5, Go Echo backend, and a built-in Streamable HTTP Model Context Protocol (MCP) server.
+
+## Overview
+
+Kanji-Chan simplifies event scheduling for organizers and participants. Organizers can create events manually or by typing natural language prompts (e.g. "Draft a dinner meeting in Shibuya next weekday evening"). The system parses the prompt via Google Gemini API into candidate slots. Participants respond without logging in using simple Yes/Maybe/No (〇/△/×) selections. Organizers can run AI schedule analysis to pick the optimal date considering custom preferences. AI agents can also manage schedules directly via the built-in MCP server.
+
+## Core Features
+
+- **AI Event Parser**: Natural language input to structured event title, description, and date/time candidate slots using Gemini ADK v2.
+- **Login-Free Responses**: Public response pages (`/event/:uuid`) where participants submit names, status answers (ok/maybe/ng), and optional comments with client-side edit token persistence.
+- **AI Optimal Schedule Suggestion**: Automated scoring (〇=2, △=1, ×=0) plus custom organizer constraint matching (e.g., key persons, preferred days) returning top 3 ranked date suggestions with detailed rationale.
+- **Streamable HTTP MCP Server**: Exposes MCP tools over `/mcp` endpoint using Bearer API Key authentication (`kc_...`), enabling LLM agents (Claude Desktop, Cursor, Custom Agents) to manage events.
+- **Dynamic OGP Card Image Generation**: Server-side OGP banner generation (`/api/ogp/:id`) featuring title, status, and candidate dates for rich SNS/messaging previews (LINE, Discord, Twitter, Slack).
+- **SEO & Social Optimization**: Dynamic `robots.txt`, `sitemap.xml`, and `X-Robots-Tag` header controls for proper search crawler indexing.
+
+## Tech Stack
+
+- **Backend**: Go 1.23+ / Echo v5 / GORM / Google Agent Development Kit (`google.golang.org/adk/v2`) / Model Context Protocol Go SDK (`github.com/modelcontextprotocol/go-sdk`) / OGP Freetype (`golang.org/x/image/font`)
+- **Frontend**: Svelte 5 (Runes: `$state`, `$derived`, `$props`) / SvelteKit / Vite / Bun / Vanilla CSS (Glassmorphism + Dark Mode)
+- **Database**: SQLite (Embedded via GORM)
+- **Infrastructure**: Docker Compose (`compose.yml`), Podman Compose
+
+## API Endpoints
+
+### Authentication & API Keys
+- `GET /api/auth/login` - Initiate OAuth 2.0 flow (Google or GitHub)
+- `GET /api/auth/callback` - OAuth 2.0 callback processing
+- `POST /api/auth/logout` - Clear user session Cookie
+- `GET /api/auth/me` - Fetch authenticated user profile and Gemini API key status
+- `POST /api/auth/apikey` - Update user's personal Gemini API key
+- `GET /api/auth/apikeys` - List user's Kanji-Chan API keys (for MCP access)
+- `POST /api/auth/apikeys` - Create new Kanji-Chan API key (`kc_...`)
+- `DELETE /api/auth/apikeys/:id` - Revoke Kanji-Chan API key
+
+### Events & Responses (Public & Private)
+- `POST /api/events` - Create event with candidate slots (Auth required)
+- `GET /api/events` - List events created by logged-in user (Auth required)
+- `GET /api/events/:id` - Fetch event details, candidates, and participant responses (Public)
+- `PUT /api/events/:id` - Update event details or confirm final candidate slot (Auth required)
+- `DELETE /api/events/:id` - Delete event (Auth required)
+- `POST /api/events/:id/responses` - Submit participant response (Public)
+- `PUT /api/events/:id/responses/:response_id` - Edit participant response (Public with edit token)
+- `DELETE /api/events/:id/responses/:response_id` - Remove response (Public with edit token)
+
+### AI Services
+- `POST /api/ai/parse-event` - Parse natural language into title, description & candidate slots (Auth required)
+- `POST /api/ai/suggest-schedule` - Analyze responses & organizer preferences to recommend optimal slots (Auth required)
+
+### MCP & OGP
+- `ANY /mcp` - Streamable HTTP MCP Server endpoint (Auth required via `Authorization: Bearer kc_...` or Session)
+- `GET /api/ogp/:id` - Dynamic PNG banner image generation for social previews (Public)
+
+## MCP Server Tools (`/mcp`)
+
+- `list_events`: List all schedule events owned by the authenticated user.
+- `get_event`: Retrieve full details of an event by `event_id` (UUID), including candidate slots and responses.
+- `create_event`: Create a new event with `title`, optional `description`, and `candidates` (array of `event_date`, `start_time`, `end_time`).
+- `update_event`: Modify event title, description, status (`scheduling`/`confirmed`), or set `confirmed_candidate_id`.
+- `delete_event`: Delete an event by `event_id`.
+
+## Database Models (GORM / SQLite)
+
+- **User**: `id`, `oauth_provider`, `oauth_id`, `email`, `name`, `gemini_api_key`, `created_at`
+- **ApiKey**: `id`, `user_id`, `name`, `key_prefix`, `key_hash` (SHA-256), `created_at`, `last_used_at`
+- **Event**: `id` (UUID), `title`, `description`, `created_by`, `status` ('scheduling'|'confirmed'), `confirmed_candidate_id`, `created_at`
+- **EventCandidate**: `id`, `event_id`, `event_date` (YYYY-MM-DD), `start_time` (HH:MM), `end_time` (HH:MM)
+- **Response**: `id`, `event_id`, `respondent_name`, `comment`, `edit_token`, `created_at`
+- **CandidateAnswer**: `id`, `response_id`, `candidate_id`, `answer_status` ('ok'|'maybe'|'ng')
+
+## Key Project Files
+
+- [AGENTS.md](AGENTS.md): Full technical specification & architecture guidelines for AI coding agents.
+- [README.md](README.md): Primary user documentation, setup guide, and feature overview.
+- [compose.yml](compose.yml): Single-container Docker Compose definition.
+- [backend/cmd/server/main.go](backend/cmd/server/main.go): Echo server entrypoint, middleware, static asset embedding, SEO routes.
+- [backend/internal/ai/gemini.go](backend/internal/ai/gemini.go): Gemini ADK v2 agents for parsing natural text & schedule suggestion.
+- [backend/internal/mcp/tools.go](backend/internal/mcp/tools.go): Streamable HTTP MCP tools definition and handlers.
+- [frontend/src/routes/+page.svelte](frontend/src/routes/+page.svelte): Landing page UI.
+- [frontend/src/routes/admin/+page.svelte](frontend/src/routes/admin/+page.svelte): Organizer dashboard, AI event parser modal, API key management, schedule optimizer UI.
+- [frontend/src/routes/event/[id]/+page.svelte](frontend/src/routes/event/[id]/+page.svelte): Public response form & status table UI.
