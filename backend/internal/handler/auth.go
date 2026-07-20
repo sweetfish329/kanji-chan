@@ -63,34 +63,38 @@ func HandleCallback(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "OAuth callback failed: "+err.Error())
 	}
 
-	// DBにユーザーが存在するか確認、なければ作成、あれば更新
+	// DBにユーザーが存在するか確認 (o_auth_provider / oauth_provider の両方のカラム名表記に対応)
+	name := gothUser.Name
+	if name == "" {
+		name = gothUser.NickName
+	}
+	email := gothUser.Email
+	if email == "" {
+		email = gothUser.NickName + "@github.com"
+	}
+
 	var user model.User
-	result := database.DB.Where("oauth_provider = ? AND oauth_id = ?", gothUser.Provider, gothUser.UserID).First(&user)
-	if result.Error != nil {
+	err = database.DB.Where(&model.User{
+		OAuthProvider: gothUser.Provider,
+		OAuthID:       gothUser.UserID,
+	}).Or("o_auth_provider = ? AND o_auth_id = ?", gothUser.Provider, gothUser.UserID).
+		First(&user).Error
+
+	if err != nil {
 		// 新規作成
 		user = model.User{
 			OAuthProvider: gothUser.Provider,
 			OAuthID:       gothUser.UserID,
-			Email:         gothUser.Email,
-			Name:          gothUser.Name,
-		}
-		if user.Name == "" {
-			user.Name = gothUser.NickName
-		}
-		if user.Email == "" {
-			user.Email = gothUser.NickName + "@github.com" // GitHubのフォールバック用など
+			Email:         email,
+			Name:          name,
 		}
 		if err := database.DB.Create(&user).Error; err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user: "+err.Error())
 		}
 	} else {
 		// 情報更新
-		name := gothUser.Name
-		if name == "" {
-			name = gothUser.NickName
-		}
 		user.Name = name
-		user.Email = gothUser.Email
+		user.Email = email
 		database.DB.Save(&user)
 	}
 
