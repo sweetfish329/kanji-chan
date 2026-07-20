@@ -71,6 +71,11 @@ func ValidateAPIKey(rawKey string) (*Claims, error) {
 		return nil, errors.New("invalid or expired API key")
 	}
 
+	// タイミング攻撃防止のため定数時間でキーハッシュを比較・検証
+	if !SecureCompare(apiKey.KeyHash, keyHash) {
+		return nil, errors.New("invalid or expired API key")
+	}
+
 	var user model.User
 	if err := database.DB.First(&user, apiKey.UserID).Error; err != nil {
 		return nil, errors.New("user associated with API key not found")

@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,11 @@ import (
 	"github.com/markbates/goth/providers/google"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
+
+// SecureCompare は定数時間 (Constant-Time) で2つの文字列を比較し、タイミング攻撃 (Timing Attack) を防止します。
+func SecureCompare(input, expected string) bool {
+	return subtle.ConstantTimeCompare([]byte(input), []byte(expected)) == 1
+}
 
 var (
 	jwtSecret []byte

@@ -90,6 +90,8 @@ func TestValidateURLForSSRF(t *testing.T) {
 		"http://127.0.0.1/admin",
 		"http://localhost:8080/secret",
 		"http://169.254.169.254/latest/meta-data/",
+		"http://[::ffff:127.0.0.1]/admin",
+		"http://[::ffff:169.254.169.254]/latest/meta-data/",
 		"file:///etc/passwd",
 		"gopher://127.0.0.1:70",
 		"ftp://internal.example.com",
@@ -102,6 +104,9 @@ func TestValidateURLForSSRF(t *testing.T) {
 		err := validateURLForSSRF(u)
 		if err == nil {
 			t.Errorf("validateURLForSSRF(%q) should have failed but passed", u)
+		}
+		if IsSafeURL(u) {
+			t.Errorf("IsSafeURL(%q) should be false but got true", u)
 		}
 	}
 }

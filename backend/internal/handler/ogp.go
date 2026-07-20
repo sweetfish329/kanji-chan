@@ -25,6 +25,12 @@ func isPrivateOrReservedIP(ip net.IP) bool {
 	if ip == nil {
 		return true
 	}
+
+	// IPv4マッピングされたIPv6アドレス (::ffff:127.0.0.1 など) を標準IPv4に正規化
+	if ip4 := ip.To4(); ip4 != nil {
+		ip = ip4
+	}
+
 	// ループバック (127.0.0.0/8, ::1)
 	if ip.IsLoopback() {
 		return true
@@ -33,7 +39,7 @@ func isPrivateOrReservedIP(ip net.IP) bool {
 	if ip.IsPrivate() {
 		return true
 	}
-	// リンクローカルユニキャスト/マルチキャスト (169.254.0.0/16 AWS IMDS 含む, fe80::/10)
+	// リンクローカルユニキャスト/マルチキャスト (169.254.0.0/16 AWS/GCP/Azure IMDS 含む, fe80::/10)
 	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
 		return true
 	}
@@ -46,6 +52,16 @@ func isPrivateOrReservedIP(ip net.IP) bool {
 		return true
 	}
 	return false
+}
+
+// IsSafeURL 入力されたURLが安全 (http/https スキームであり、プライベート/予約済み/内部IPを指さない) かを判定
+func IsSafeURL(targetURL string) bool {
+	return validateURLForSSRF(targetURL) == nil
+}
+
+// isSafeURL isSafeURL (小文字表記の非公開/パッケージ内エイリアス)
+func isSafeURL(targetURL string) bool {
+	return IsSafeURL(targetURL)
 }
 
 // validateURLForSSRF 入力されたURLのスキーム制限およびDNS名前解決後のIPアドレスバリデーション
