@@ -44,17 +44,65 @@ func main() {
 
 	e := echo.New()
 
+	// ALLOWED_ORIGINS 環境変数または PUBLIC_SITE_URL から許可 Origin ホワイトリストを構築
+	allowedOrigins := map[string]bool{
+		"http://localhost:5173": true, // Vite 開発サーバー
+		"http://localhost:8080": true, // バックエンド
+		"http://127.0.0.1:5173": true,
+		"http://127.0.0.1:8080": true,
+	}
+	if envOrigins := os.Getenv("ALLOWED_ORIGINS"); envOrigins != "" {
+		for _, o := range strings.Split(envOrigins, ",") {
+			trimmed := strings.TrimSpace(o)
+			if trimmed != "" {
+				allowedOrigins[strings.TrimRight(trimmed, "/")] = true
+			}
+		}
+	}
+	if siteURL := os.Getenv("PUBLIC_SITE_URL"); siteURL != "" {
+		allowedOrigins[strings.TrimRight(siteURL, "/")] = true
+	}
+
 	// ミドルウェアの設定
 	e.Use(middleware.RequestLogger())
 	e.Use(middleware.Recover())
+
+	// 1. CORS ミドルウェア (許可された Origin ホワイトリストのみを制限許可)
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		UnsafeAllowOriginFunc: func(c *echo.Context, origin string) (string, bool, error) {
-			// クッキー認証（Credentials: true）と任意のOrigin許可を両立するための動的Origin判定
-			return origin, true, nil
+			cleanOrigin := strings.TrimRight(origin, "/")
+			if allowedOrigins[cleanOrigin] {
+				return origin, true, nil
+			}
+			return "", false, nil
 		},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
-		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization, "X-Response-Token"},
+		AllowHeaders:     []string{echo.HeaderContentType, echo.HeaderAuthorization, "X-Response-Token", "X-API-Key", "X-CSRF-Token"},
 		AllowCredentials: true,
+	}))
+
+	// 2. CSRF (Cross-Site Request Forgery) 防御ミドルウェア
+	e.Use(middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup:    "header:X-CSRF-Token,form:_csrf",
+		CookieName:     "_csrf",
+		CookiePath:     "/",
+		CookieHTTPOnly: false, // JSから取得しヘッダーに設定可能とする
+		CookieSameSite: http.SameSiteLaxMode,
+		Skipper: func(c *echo.Context) bool {
+			// 読み取り専用リクエスト (GET, HEAD, OPTIONS) はスキップ
+			reqMethod := c.Request().Method
+			if reqMethod == http.MethodGet || reqMethod == http.MethodHead || reqMethod == http.MethodOptions {
+				return true
+			}
+			// APIキー/Bearerヘッダー認証の場合はCSRFチェックをスキップ (ブラウザの自動Cookie送信に依存しないため)
+			if apiKey := c.Request().Header.Get("X-API-Key"); apiKey != "" {
+				return true
+			}
+			if authHeader := c.Request().Header.Get("Authorization"); authHeader != "" && strings.HasPrefix(authHeader, "Bearer kc_") {
+				return true
+			}
+			return false
+		},
 	}))
 
 	// 共通・認証 (パブリック)
@@ -67,6 +115,10 @@ func main() {
 	e.GET("/api/auth/login", handler.HandleLogin)
 	e.GET("/api/auth/callback", handler.HandleCallback)
 	e.POST("/api/auth/logout", handler.HandleLogout)
+	e.GET("/api/auth/csrf", func(c *echo.Context) error {
+		token, _ := c.Get("csrf").(string)
+		return c.JSON(http.StatusOK, map[string]string{"csrf_token": token})
+	})
 
 	// イベント詳細・回答登録 (パブリック)
 	e.GET("/api/events/:id", handler.HandleGetEvent)
