@@ -12,12 +12,33 @@ import (
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
 
+func getOAuthProvider(c *echo.Context) string {
+	if provider := c.QueryParam("provider"); provider != "" {
+		return provider
+	}
+	if envProvider := os.Getenv("OAUTH_PROVIDER"); envProvider != "" {
+		return envProvider
+	}
+	githubID := os.Getenv("GITHUB_CLIENT_ID")
+	if githubID == "" {
+		githubID = os.Getenv("GITHUB_OAUTH_CLIENT_ID")
+	}
+	googleID := os.Getenv("GOOGLE_CLIENT_ID")
+	if googleID == "" {
+		googleID = os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
+	}
+	if googleID == "" && os.Getenv("OAUTH_CLIENT_ID") != "" {
+		googleID = os.Getenv("OAUTH_CLIENT_ID")
+	}
+	if githubID != "" && googleID == "" {
+		return "github"
+	}
+	return "google"
+}
+
 // HandleLogin OAuthログインの開始 (リダイレクト)
 func HandleLogin(c *echo.Context) error {
-	provider := os.Getenv("OAUTH_PROVIDER")
-	if provider == "" {
-		provider = "google"
-	}
+	provider := getOAuthProvider(c)
 
 	// gothicがプロバイダを読み込めるようにクエリパラメータに設定する
 	q := c.Request().URL.Query()
@@ -31,10 +52,7 @@ func HandleLogin(c *echo.Context) error {
 
 // HandleCallback OAuthコールバックの処理
 func HandleCallback(c *echo.Context) error {
-	provider := os.Getenv("OAUTH_PROVIDER")
-	if provider == "" {
-		provider = "google"
-	}
+	provider := getOAuthProvider(c)
 
 	q := c.Request().URL.Query()
 	q.Set("provider", provider)

@@ -27,7 +27,7 @@ type ListEventsOutput struct {
 
 // GetEventInput
 type GetEventInput struct {
-	EventID string `json:"event_id" jsonschema:"description=対象イベントのUUID,required"`
+	EventID string `json:"event_id" jsonschema:"対象イベントのUUID"`
 }
 
 type GetEventOutput struct {
@@ -36,15 +36,15 @@ type GetEventOutput struct {
 
 // CreateEventInput
 type CandidateInput struct {
-	EventDate string `json:"event_date" jsonschema:"description=開催日 (YYYY-MM-DD形式),required"`
-	StartTime string `json:"start_time" jsonschema:"description=開始時間 (HH:MM形式),required"`
-	EndTime   string `json:"end_time" jsonschema:"description=終了時間 (HH:MM形式),required"`
+	EventDate string `json:"event_date" jsonschema:"開催日 (YYYY-MM-DD形式)"`
+	StartTime string `json:"start_time" jsonschema:"開始時間 (HH:MM形式)"`
+	EndTime   string `json:"end_time" jsonschema:"終了時間 (HH:MM形式)"`
 }
 
 type CreateEventInput struct {
-	Title       string           `json:"title" jsonschema:"description=イベントタイトル,required"`
-	Description string           `json:"description,omitempty" jsonschema:"description=イベントの詳細説明"`
-	Candidates  []CandidateInput `json:"candidates" jsonschema:"description=候補日時のリスト (1つ以上必要),required"`
+	Title       string           `json:"title" jsonschema:"イベントタイトル"`
+	Description string           `json:"description,omitempty" jsonschema:"イベントの詳細説明"`
+	Candidates  []CandidateInput `json:"candidates" jsonschema:"候補日時のリスト (1つ以上必要)"`
 }
 
 type CreateEventOutput struct {
@@ -54,11 +54,11 @@ type CreateEventOutput struct {
 
 // UpdateEventInput
 type UpdateEventInput struct {
-	EventID              string `json:"event_id" jsonschema:"description=対象イベントのUUID,required"`
-	Title                string `json:"title,omitempty" jsonschema:"description=新しいイベントタイトル"`
-	Description          string `json:"description,omitempty" jsonschema:"description=新しい詳細説明"`
-	Status               string `json:"status,omitempty" jsonschema:"description=ステータス ('scheduling' または 'confirmed')"`
-	ConfirmedCandidateID *uint  `json:"confirmed_candidate_id,omitempty" jsonschema:"description=最終確定候補日時のID"`
+	EventID              string `json:"event_id" jsonschema:"対象イベントのUUID"`
+	Title                string `json:"title,omitempty" jsonschema:"新しいイベントタイトル"`
+	Description          string `json:"description,omitempty" jsonschema:"新しい詳細説明"`
+	Status               string `json:"status,omitempty" jsonschema:"ステータス ('scheduling' または 'confirmed')"`
+	ConfirmedCandidateID *uint  `json:"confirmed_candidate_id,omitempty" jsonschema:"最終確定候補日時のID"`
 }
 
 type UpdateEventOutput struct {
@@ -68,7 +68,7 @@ type UpdateEventOutput struct {
 
 // DeleteEventInput
 type DeleteEventInput struct {
-	EventID string `json:"event_id" jsonschema:"description=削除するイベントのUUID,required"`
+	EventID string `json:"event_id" jsonschema:"削除するイベントのUUID"`
 }
 
 type DeleteEventOutput struct {

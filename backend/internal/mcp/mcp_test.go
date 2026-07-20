@@ -11,7 +11,6 @@ import (
 )
 
 func TestMCPTools(t *testing.T) {
-	os.Setenv("DB_TYPE", "sqlite")
 	os.Setenv("DB_PATH", ":memory:")
 	_, err := database.InitDB()
 	if err != nil {

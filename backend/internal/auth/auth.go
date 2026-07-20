@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -25,9 +26,16 @@ var (
 
 // InitAuth 認証関連の初期設定
 func InitAuth() {
-	clientID := os.Getenv("OAUTH_CLIENT_ID")
-	clientSecret := os.Getenv("OAUTH_CLIENT_SECRET")
+	publicSiteURL := os.Getenv("PUBLIC_SITE_URL")
+	if publicSiteURL == "" {
+		publicSiteURL = "http://localhost:8080"
+	}
+
 	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
+	if redirectURI == "" {
+		redirectURI = fmt.Sprintf("%s/api/auth/callback", strings.TrimRight(publicSiteURL, "/"))
+	}
+
 	sessionSecret := os.Getenv("JWT_SECRET")
 	if sessionSecret == "" {
 		sessionSecret = os.Getenv("SESSION_SECRET")
@@ -39,11 +47,51 @@ func InitAuth() {
 	}
 	jwtSecret = []byte(sessionSecret)
 
-	// Gothプロバイダの登録
-	goth.UseProviders(
-		google.New(clientID, clientSecret, redirectURI, "email", "profile"),
-		github.New(clientID, clientSecret, redirectURI, "user:email", "read:user"),
-	)
+	var providers []goth.Provider
+
+	// 1. Google OAuth
+	googleID := os.Getenv("GOOGLE_CLIENT_ID")
+	if googleID == "" {
+		googleID = os.Getenv("GOOGLE_OAUTH_CLIENT_ID")
+	}
+	googleSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if googleSecret == "" {
+		googleSecret = os.Getenv("GOOGLE_OAUTH_CLIENT_SECRET")
+	}
+	// OAUTH_CLIENT_ID 互換 (OAUTH_PROVIDERがgithubでない場合)
+	if googleID == "" && os.Getenv("OAUTH_PROVIDER") != "github" {
+		googleID = os.Getenv("OAUTH_CLIENT_ID")
+		googleSecret = os.Getenv("OAUTH_CLIENT_SECRET")
+	}
+
+	if googleID != "" && googleSecret != "" {
+		providers = append(providers, google.New(googleID, googleSecret, redirectURI, "email", "profile"))
+	}
+
+	// 2. GitHub OAuth
+	githubID := os.Getenv("GITHUB_CLIENT_ID")
+	if githubID == "" {
+		githubID = os.Getenv("GITHUB_OAUTH_CLIENT_ID")
+	}
+	githubSecret := os.Getenv("GITHUB_CLIENT_SECRET")
+	if githubSecret == "" {
+		githubSecret = os.Getenv("GITHUB_OAUTH_CLIENT_SECRET")
+	}
+	// OAUTH_CLIENT_ID 互換 (OAUTH_PROVIDERがgithubの場合)
+	if githubID == "" && os.Getenv("OAUTH_PROVIDER") == "github" {
+		githubID = os.Getenv("OAUTH_CLIENT_ID")
+		githubSecret = os.Getenv("OAUTH_CLIENT_SECRET")
+	}
+
+	if githubID != "" && githubSecret != "" {
+		providers = append(providers, github.New(githubID, githubSecret, redirectURI, "user:email", "read:user"))
+	}
+
+	if len(providers) > 0 {
+		goth.UseProviders(providers...)
+	} else {
+		log.Println("Warning: No OAuth providers registered. Please set GOOGLE_CLIENT_ID or GITHUB_CLIENT_ID.")
+	}
 }
 
 // Claims JWTのクレーム構造体

@@ -28,10 +28,7 @@ func main() {
 		log.Println("No .env file found, using system environment variables")
 	}
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
+	const port = "8080"
 
 	// データベース接続の初期化
 	_, err := database.InitDB()
