@@ -98,6 +98,7 @@ func InitAuth() {
 
 	if len(providers) > 0 {
 		goth.UseProviders(providers...)
+		log.Printf("OAuth initialized. Registered Redirect URI: %s", redirectURI)
 	} else {
 		log.Println("Warning: No OAuth providers registered. Please set GOOGLE_CLIENT_ID or GITHUB_CLIENT_ID.")
 	}
