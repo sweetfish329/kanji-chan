@@ -78,7 +78,27 @@ docker compose up -d
 
 ---
 
-### 2. ローカル開発環境での起動
+### 2. GHCR 公開イメージを用いた本番デプロイ (`deploy/`)
+
+GitHub Actions の CI/CD で自動ビルド・プッシュされる公開 Docker イメージ (`ghcr.io/sweetfish329/kanji-chan:latest`) を利用して本番環境へデプロイする場合は、`deploy/` ディレクトリ配下の設定ファイルを使用します。
+
+```bash
+# 設定ファイルの取得
+mkdir -p kanji-chan && cd kanji-chan
+curl -sSL -O https://raw.githubusercontent.com/sweetfish329/kanji-chan/main/deploy/compose.yaml
+curl -sSL -O https://raw.githubusercontent.com/sweetfish329/kanji-chan/main/deploy/.env.example
+
+# .env の設定と起動
+cp .env.example .env
+# .env 内の OAuth 情報等を設定後
+docker compose pull && docker compose up -d
+```
+
+詳細な設定方法や Nginx/Caddy リバースプロキシ構築例、バックアップ手順については [deploy/README.md](deploy/README.md) を参照してください。
+
+---
+
+### 3. ローカル開発環境での起動
 
 #### 前提条件
 - Go 1.23 以上

@@ -1,0 +1,41 @@
+name: kanji-chan
+
+services:
+  app:
+    image: ghcr.io/sweetfish329/kanji-chan:latest
+    container_name: kanji-chan-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      # サーバー・データベース設定
+      - PORT=8080
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_PATH=${DB_PATH:-/data/kanji.db}
+
+      # OAuth 認証設定 (Google または GitHub OAuth 2.0)
+      - OAUTH_PROVIDER=${OAUTH_PROVIDER:-google}
+      - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
+      - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - OAUTH_REDIRECT_URI=${OAUTH_REDIRECT_URI}
+
+      # Cookie セッション署名用シークレット (プロダクションでは必ず指定)
+      - SESSION_SECRET=${SESSION_SECRET}
+
+      # 公開サイトURL設定 (SEO: robots.txt / sitemap.xml / OGP 用)
+      - PUBLIC_SITE_URL=${PUBLIC_SITE_URL}
+
+      # Gemini API キー (オプショナル: 幹事の個別設定がない場合のフォールバック用)
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+    volumes:
+      - kanji_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  kanji_data:
+    driver: local
