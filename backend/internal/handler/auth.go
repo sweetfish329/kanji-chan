@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v5"
@@ -116,7 +117,11 @@ func HandleCallback(c *echo.Context) error {
 	c.SetCookie(cookie)
 
 	// フロントエンドの管理画面へリダイレクト
-	return c.Redirect(http.StatusTemporaryRedirect, "http://localhost:5173/admin")
+	redirectTarget := "/admin"
+	if publicSiteURL := os.Getenv("PUBLIC_SITE_URL"); publicSiteURL != "" {
+		redirectTarget = strings.TrimRight(publicSiteURL, "/") + "/admin"
+	}
+	return c.Redirect(http.StatusTemporaryRedirect, redirectTarget)
 }
 
 // HandleLogout ログアウト処理
