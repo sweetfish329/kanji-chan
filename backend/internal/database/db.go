@@ -34,6 +34,17 @@ func InitDB() (*gorm.DB, error) {
 
 	// 自動マイグレーションの実行
 	log.Println("Running database migrations...")
+	if db.Migrator().HasTable("users") {
+		if db.Migrator().HasColumn("users", "o_auth_provider") && !db.Migrator().HasColumn("users", "oauth_provider") {
+			log.Println("Migrating legacy column o_auth_provider to oauth_provider...")
+			_ = db.Exec("ALTER TABLE users RENAME COLUMN o_auth_provider TO oauth_provider").Error
+		}
+		if db.Migrator().HasColumn("users", "o_auth_id") && !db.Migrator().HasColumn("users", "oauth_id") {
+			log.Println("Migrating legacy column o_auth_id to oauth_id...")
+			_ = db.Exec("ALTER TABLE users RENAME COLUMN o_auth_id TO oauth_id").Error
+		}
+	}
+
 	err = db.AutoMigrate(
 		&model.User{},
 		&model.ApiKey{},

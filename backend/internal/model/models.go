@@ -10,8 +10,8 @@ import (
 // User 幹事・管理者
 type User struct {
 	ID            uint      `gorm:"primaryKey" json:"id"`
-	OAuthProvider string    `gorm:"column:oauth_provider;type:varchar(50);not null;uniqueIndex:idx_provider_id" json:"oauth_provider"`
-	OAuthID       string    `gorm:"column:oauth_id;type:varchar(255);not null;uniqueIndex:idx_provider_id" json:"oauth_id"`
+	OAuthProvider string    `gorm:"column:oauth_provider;type:varchar(50);not null;default:'';uniqueIndex:idx_provider_id" json:"oauth_provider"`
+	OAuthID       string    `gorm:"column:oauth_id;type:varchar(255);not null;default:'';uniqueIndex:idx_provider_id" json:"oauth_id"`
 	Email         string    `gorm:"type:varchar(255);not null" json:"email"`
 	Name          string    `gorm:"type:varchar(255);not null" json:"name"`
 	Role          string    `gorm:"type:varchar(50);default:'user'" json:"role"`
