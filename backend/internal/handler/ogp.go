@@ -1,9 +1,13 @@
 package handler
 
 import (
+	"context"
 	"fmt"
 	"html"
+	"io"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -13,6 +17,166 @@ import (
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
+
+// --- SSRF (Server-Side Request Forgery) 防御層 & OGP取得処理 ---
+
+// isPrivateOrReservedIP 指定されたIPアドレスがプライベート/ループバック/リンクローカル/保留IPでないかをチェック
+func isPrivateOrReservedIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	// ループバック (127.0.0.0/8, ::1)
+	if ip.IsLoopback() {
+		return true
+	}
+	// プライベートIP (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, fc00::/7)
+	if ip.IsPrivate() {
+		return true
+	}
+	// リンクローカルユニキャスト/マルチキャスト (169.254.0.0/16 AWS IMDS 含む, fe80::/10)
+	if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+		return true
+	}
+	// 未指定IP (0.0.0.0, ::)
+	if ip.IsUnspecified() {
+		return true
+	}
+	// AWSメタデータIP (169.254.169.254) およびマルチキャストIP
+	if ip.Equal(net.ParseIP("169.254.169.254")) || ip.IsMulticast() {
+		return true
+	}
+	return false
+}
+
+// validateURLForSSRF 入力されたURLのスキーム制限およびDNS名前解決後のIPアドレスバリデーション
+func validateURLForSSRF(rawURL string) error {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	scheme := strings.ToLower(parsed.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("prohibited scheme: %s (only http and https are allowed)", scheme)
+	}
+
+	hostname := parsed.Hostname()
+	if hostname == "" {
+		return fmt.Errorf("empty hostname")
+	}
+
+	// ホスト名のDNS名前解決を行い、解決されたすべてのIPをテスト
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("failed to resolve hostname %s: %w", hostname, err)
+	}
+
+	for _, ip := range ips {
+		if isPrivateOrReservedIP(ip) {
+			return fmt.Errorf("access to private or internal IP address %s is prohibited", ip.String())
+		}
+	}
+
+	return nil
+}
+
+// safeHTTPClient DNS Dynamic Rebinding (TOCTOU) を防止するためのソケット接続レベルでのIP判定ダイアラー
+var safeHTTPClient = &http.Client{
+	Timeout: 5 * time.Second,
+	CheckRedirect: func(req *http.Request, via []*http.Request) error {
+		if len(via) >= 5 {
+			return fmt.Errorf("too many redirects")
+		}
+		// リダイレクト先のURLも再度SSRFチェック
+		return validateURLForSSRF(req.URL.String())
+	},
+	Transport: &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, port, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			ips, err := net.DefaultResolver.LookupIP(ctx, "ip", host)
+			if err != nil {
+				return nil, err
+			}
+			for _, ip := range ips {
+				if isPrivateOrReservedIP(ip) {
+					return nil, fmt.Errorf("access to private/reserved IP address %s is prohibited", ip.String())
+				}
+			}
+			dialer := &net.Dialer{
+				Timeout: 3 * time.Second,
+			}
+			return dialer.DialContext(ctx, network, net.JoinHostPort(ips[0].String(), port))
+		},
+	},
+}
+
+type OGPFetchResponse struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+	URL         string `json:"url"`
+}
+
+// HandleFetchOGP 外部URLからOGP情報を安全に取得する (SSRF対策済み)
+func HandleFetchOGP(c *echo.Context) error {
+	targetURL := c.QueryParam("url")
+	if targetURL == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Missing 'url' query parameter")
+	}
+
+	// スキーム制限 (http/httpsのみ) および プライベートIP拒否バリデーション
+	if err := validateURLForSSRF(targetURL); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "SSRF validation failed: "+err.Error())
+	}
+
+	req, err := http.NewRequestWithContext(c.Request().Context(), http.MethodGet, targetURL, nil)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Failed to create HTTP request")
+	}
+	req.Header.Set("User-Agent", "KanjiChan-OGPFetcher/1.0")
+
+	resp, err := safeHTTPClient.Do(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Failed to fetch target URL: "+err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Target URL returned HTTP status %d", resp.StatusCode))
+	}
+
+	// 読み込み制限 (1MB)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to read response body")
+	}
+	bodyStr := string(bodyBytes)
+
+	ogpData := OGPFetchResponse{
+		URL: targetURL,
+	}
+
+	if matches := regexp.MustCompile(`(?i)<meta\s+property=["']og:title["']\s+content=["']([^"']+)["']`).FindStringSubmatch(bodyStr); len(matches) > 1 {
+		ogpData.Title = html.UnescapeString(matches[1])
+	} else if matches := regexp.MustCompile(`(?i)<title>([^<]+)</title>`).FindStringSubmatch(bodyStr); len(matches) > 1 {
+		ogpData.Title = html.UnescapeString(matches[1])
+	}
+
+	if matches := regexp.MustCompile(`(?i)<meta\s+property=["']og:description["']\s+content=["']([^"']+)["']`).FindStringSubmatch(bodyStr); len(matches) > 1 {
+		ogpData.Description = html.UnescapeString(matches[1])
+	} else if matches := regexp.MustCompile(`(?i)<meta\s+name=["']description["']\s+content=["']([^"']+)["']`).FindStringSubmatch(bodyStr); len(matches) > 1 {
+		ogpData.Description = html.UnescapeString(matches[1])
+	}
+
+	if matches := regexp.MustCompile(`(?i)<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']`).FindStringSubmatch(bodyStr); len(matches) > 1 {
+		ogpData.Image = html.UnescapeString(matches[1])
+	}
+
+	return c.JSON(http.StatusOK, ogpData)
+}
 
 // isSocialBot はリクエストのUser-AgentがSNS・メッセージングのOGPクローラかどうかを判定する
 func isSocialBot(ua string) bool {
@@ -234,7 +398,7 @@ func buildOGPHTML(event model.Event, pageURL, siteURL string) string {
 func generateOGPSVG(event model.Event) string {
 	escapedTitle := html.EscapeString(event.Title)
 	runesTitle := []rune(escapedTitle)
-	
+
 	// タイトルの自動折り返し・切り詰め
 	titleLine1 := string(runesTitle)
 	titleLine2 := ""
@@ -349,4 +513,3 @@ func generateOGPSVG(event model.Event) string {
 		escapedCandidate,
 	)
 }
-

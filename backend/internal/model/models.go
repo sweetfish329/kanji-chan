@@ -14,6 +14,7 @@ type User struct {
 	OAuthID       string    `gorm:"type:varchar(255);not null;uniqueIndex:idx_provider_id" json:"oauth_id"`
 	Email         string    `gorm:"type:varchar(255);not null" json:"email"`
 	Name          string    `gorm:"type:varchar(255);not null" json:"name"`
+	Role          string    `gorm:"type:varchar(50);default:'user'" json:"role"`
 	GeminiAPIKey  string    `gorm:"type:varchar(255)" json:"gemini_api_key,omitempty"` // 暗号化して保存するか、まずは平文（デモ用）で
 	CreatedAt     time.Time `json:"created_at"`
 	Events        []Event   `gorm:"foreignKey:CreatedBy" json:"events,omitempty"`
@@ -25,6 +26,7 @@ type ApiKey struct {
 	ID         uint       `gorm:"primaryKey" json:"id"`
 	UserID     uint       `gorm:"not null;index" json:"user_id"`
 	Name       string     `gorm:"type:varchar(255);not null" json:"name"`
+	Role       string     `gorm:"type:varchar(50);default:'user'" json:"role"`
 	KeyPrefix  string     `gorm:"type:varchar(20);not null" json:"key_prefix"`    // 例: "kc_8f3a9b..." (UI表示用)
 	KeyHash    string     `gorm:"type:varchar(64);not null;uniqueIndex" json:"-"` // SHA-256
 	CreatedAt  time.Time  `json:"created_at"`

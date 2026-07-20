@@ -84,3 +84,24 @@ func stringContains(s, substr string) bool {
 	}
 	return false
 }
+
+func TestValidateURLForSSRF(t *testing.T) {
+	invalidURLs := []string{
+		"http://127.0.0.1/admin",
+		"http://localhost:8080/secret",
+		"http://169.254.169.254/latest/meta-data/",
+		"file:///etc/passwd",
+		"gopher://127.0.0.1:70",
+		"ftp://internal.example.com",
+		"http://10.0.0.1/",
+		"http://192.168.1.1/",
+		"http://172.16.0.1/",
+	}
+
+	for _, u := range invalidURLs {
+		err := validateURLForSSRF(u)
+		if err == nil {
+			t.Errorf("validateURLForSSRF(%q) should have failed but passed", u)
+		}
+	}
+}

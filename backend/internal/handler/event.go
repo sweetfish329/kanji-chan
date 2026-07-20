@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v5"
+	"github.com/sweetfish329/kanji-chan/backend/internal/auth"
 	"github.com/sweetfish329/kanji-chan/backend/internal/database"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
@@ -18,6 +19,28 @@ type CreateEventRequest struct {
 		StartTime string `json:"start_time"` // HH:MM
 		EndTime   string `json:"end_time"`   // HH:MM
 	} `json:"candidates"`
+}
+
+// validateEventManagementAccess イベント管理操作の権限（認可）およびBOLAの検証を行う
+func validateEventManagementAccess(claims *auth.Claims, event *model.Event) error {
+	if claims == nil {
+		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+	}
+
+	// APIキー認証の場合は管理者ロール(admin)を厳密にチェック
+	if claims.IsAPIKey && claims.Role != "admin" {
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden: API key is not authorized with admin role")
+	}
+
+	// BOLA / 認可チェック: イベント作成者本人であるか、または管理者ロール(admin)を所持しているか
+	isOwner := event.CreatedBy != nil && *event.CreatedBy == claims.UserID
+	isAdmin := claims.Role == "admin"
+
+	if !isOwner && !isAdmin {
+		return echo.NewHTTPError(http.StatusForbidden, "Forbidden: Insufficient permissions to manage this event")
+	}
+
+	return nil
 }
 
 // HandleCreateEvent 新規イベント作成 (ログイン不要・匿名作成も可)
@@ -140,9 +163,9 @@ func HandleUpdateEvent(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
-	// 権限チェック (作成者のみ)
-	if event.CreatedBy == nil || *event.CreatedBy != claims.UserID {
-		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	// 権限チェック (作成者本人または管理者権限、APIキーの場合は管理者ロール必須)
+	if err := validateEventManagementAccess(claims, &event); err != nil {
+		return err
 	}
 
 	var req struct {
@@ -194,8 +217,9 @@ func HandleDeleteEvent(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "Event not found")
 	}
 
-	if event.CreatedBy == nil || *event.CreatedBy != claims.UserID {
-		return echo.NewHTTPError(http.StatusForbidden, "Forbidden")
+	// 権限チェック (作成者本人または管理者権限、APIキーの場合は管理者ロール必須)
+	if err := validateEventManagementAccess(claims, &event); err != nil {
+		return err
 	}
 
 	if err := database.DB.Delete(&event).Error; err != nil {

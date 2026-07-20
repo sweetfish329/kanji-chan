@@ -35,9 +35,16 @@ func GenerateAPIKey(name string, userID uint) (string, *model.ApiKey, error) {
 	// UI表示用のプレフィックス (例: "kc_6f3a9b...")
 	keyPrefix := rawKey[:9] + "..."
 
+	role := "admin"
+	var user model.User
+	if err := database.DB.First(&user, userID).Error; err == nil && user.Role != "" {
+		role = user.Role
+	}
+
 	apiKey := &model.ApiKey{
 		UserID:    userID,
 		Name:      name,
+		Role:      role,
 		KeyPrefix: keyPrefix,
 		KeyHash:   keyHash,
 		CreatedAt: time.Now(),
@@ -75,10 +82,20 @@ func ValidateAPIKey(rawKey string) (*Claims, error) {
 		database.DB.Model(&model.ApiKey{}).Where("id = ?", id).Update("last_used_at", now)
 	}(apiKey.ID)
 
+	role := apiKey.Role
+	if role == "" {
+		role = user.Role
+	}
+	if role == "" {
+		role = "admin"
+	}
+
 	claims := &Claims{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:   user.ID,
+		Email:    user.Email,
+		Name:     user.Name,
+		Role:     role,
+		IsAPIKey: true,
 	}
 
 	return claims, nil

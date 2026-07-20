@@ -1,9 +1,8 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -23,14 +22,14 @@ func InitAuth() {
 	clientID := os.Getenv("OAUTH_CLIENT_ID")
 	clientSecret := os.Getenv("OAUTH_CLIENT_SECRET")
 	redirectURI := os.Getenv("OAUTH_REDIRECT_URI")
-	sessionSecret := os.Getenv("SESSION_SECRET")
+	sessionSecret := os.Getenv("JWT_SECRET")
 	if sessionSecret == "" {
-		bytes := make([]byte, 32)
-		if _, err := rand.Read(bytes); err == nil {
-			sessionSecret = hex.EncodeToString(bytes)
-		} else {
-			sessionSecret = fmt.Sprintf("kanji-chan-secret-%d", time.Now().UnixNano())
-		}
+		sessionSecret = os.Getenv("SESSION_SECRET")
+	}
+
+	// 安全設計(Fail-Safe): 環境変数が未設定の場合はフォールバックせず起動時に強制終了する
+	if sessionSecret == "" {
+		log.Fatalf("Fatal: JWT_SECRET (or SESSION_SECRET) environment variable is not set. Refusing to run with fallback secret.")
 	}
 	jwtSecret = []byte(sessionSecret)
 
@@ -43,19 +42,27 @@ func InitAuth() {
 
 // Claims JWTのクレーム構造体
 type Claims struct {
-	UserID uint   `json:"user_id"`
-	Email  string `json:"email"`
-	Name   string `json:"name"`
+	UserID   uint   `json:"user_id"`
+	Email    string `json:"email"`
+	Name     string `json:"name"`
+	Role     string `json:"role"`
+	IsAPIKey bool   `json:"is_api_key,omitempty"`
 	jwt.RegisteredClaims
 }
 
 // GenerateJWT ユーザーIDからJWTを生成
 func GenerateJWT(user *model.User) (string, error) {
 	expirationTime := time.Now().Add(24 * time.Hour)
+	role := user.Role
+	if role == "" {
+		role = "user"
+	}
 	claims := &Claims{
-		UserID: user.ID,
-		Email:  user.Email,
-		Name:   user.Name,
+		UserID:   user.ID,
+		Email:    user.Email,
+		Name:     user.Name,
+		Role:     role,
+		IsAPIKey: false,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},

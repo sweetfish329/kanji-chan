@@ -74,7 +74,8 @@ func main() {
 	e.PUT("/api/events/:id/responses/:response_id", handler.HandleUpdateResponse)
 	e.DELETE("/api/events/:id/responses/:response_id", handler.HandleDeleteResponse)
 
-	// OGP動的画像生成 (パブリック)
+	// OGP動的画像生成 & 外部OGP取得 (パブリック)
+	e.GET("/api/ogp/fetch", handler.HandleFetchOGP)
 	e.GET("/api/ogp/:id", handler.HandleOGPImage)
 
 	// 認証が必要なプライベートグループ
