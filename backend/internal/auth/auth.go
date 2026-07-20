@@ -9,7 +9,9 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/sessions"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/markbates/goth/providers/github"
 	"github.com/markbates/goth/providers/google"
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
@@ -46,6 +48,13 @@ func InitAuth() {
 		log.Fatalf("Fatal: JWT_SECRET (or SESSION_SECRET) environment variable is not set. Refusing to run with fallback secret.")
 	}
 	jwtSecret = []byte(sessionSecret)
+
+	// gothicのセッションストアを初期化
+	store := sessions.NewCookieStore(jwtSecret)
+	store.MaxAge(86400) // 1日
+	store.Options.Path = "/"
+	store.Options.HttpOnly = true
+	gothic.Store = store
 
 	var providers []goth.Provider
 
