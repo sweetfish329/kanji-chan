@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, type AttachedImage } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, Dialog, Switch, type AttachedImage } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import { toast } from '@zerodevx/svelte-toast';

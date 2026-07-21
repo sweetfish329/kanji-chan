@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, type AttachedImage } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, Dialog, DropdownMenu, Tabs, TabsContent, type AttachedImage, type MenuItem, type TabItem } from '$lib';
   import { toast } from '@zerodevx/svelte-toast';
 
   interface User {
@@ -39,6 +39,22 @@
   let userApiKeys = $state<UserApiKey[]>([]);
   let activeTab = $state<'list' | 'create-ai' | 'create-manual' | 'settings'>('list');
   let loading = $state(true);
+
+  // Bits UI Dialog Delete State
+  let deleteDialogOpen = $state(false);
+  let targetDeleteEvent = $state<{ id: string; title: string } | null>(null);
+
+  function openDeleteDialog(id: string, title: string) {
+    targetDeleteEvent = { id, title };
+    deleteDialogOpen = true;
+  }
+
+  let adminTabs = $derived<TabItem[]>([
+    { value: 'list', label: 'イベント一覧', icon: 'list_alt', badge: `${events.length}件` },
+    { value: 'create-ai', label: 'AIでイベント作成', icon: 'auto_awesome' },
+    { value: 'create-manual', label: '手動でイベント作成', icon: 'add_circle' },
+    { value: 'settings', label: 'ユーザー設定 & APIキー', icon: 'settings' }
+  ]);
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -450,7 +466,7 @@
                         class="btn btn-danger btn-sm-del" 
                         title="イベント削除"
                         aria-label={`イベント「${event.title}」を削除`}
-                        onclick={() => deleteEvent(event.id, event.title)}
+                        onclick={() => openDeleteDialog(event.id, event.title)}
                       >
                         <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                       </button>
@@ -769,6 +785,30 @@ X-API-Key: kc_your_api_key_here</code></pre>
           </div>
         {/if}
       </section>
+      <!-- Bits UI Delete Confirmation Dialog -->
+      <Dialog
+        bind:open={deleteDialogOpen}
+        title="イベントの削除確認"
+        description={`「${targetDeleteEvent?.title}」を削除しますか？この操作は取り消せません。`}
+      >
+        <div class="dialog-actions-row">
+          <button type="button" class="btn btn-secondary" onclick={() => deleteDialogOpen = false}>
+            キャンセル
+          </button>
+          <button 
+            type="button" 
+            class="btn btn-danger" 
+            onclick={() => {
+              if (targetDeleteEvent) {
+                deleteEvent(targetDeleteEvent.id, targetDeleteEvent.title);
+                deleteDialogOpen = false;
+              }
+            }}
+          >
+            削除する
+          </button>
+        </div>
+      </Dialog>
     </div>
   {/if}
 </div>

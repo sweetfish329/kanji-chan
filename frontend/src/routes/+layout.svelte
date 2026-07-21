@@ -2,7 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem } from '$lib';
+  import { Accordion, AccordionItem, Dialog, DropdownMenu, type MenuItem } from '$lib';
   import { SvelteToast } from '@zerodevx/svelte-toast';
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
@@ -18,6 +18,12 @@
   let loading = $state(true);
   let isMobile = $state(false);
   let mobileMenuOpen = $state(false);
+
+  let userMenuItems = $derived<MenuItem[]>(user ? [
+    { id: 'dashboard', label: '幹事ダッシュボード', icon: 'dashboard', onSelect: () => window.location.href = '/admin' },
+    { id: 'create', label: '新規イベント作成', icon: 'add_circle', onSelect: () => window.location.href = '/admin' },
+    { id: 'logout', label: 'ログアウト', icon: 'logout', danger: true, onSelect: logout }
+  ] : []);
 
   onMount(() => {
     // デバイスタイプ判定: UA + 画面幅の両方で判定
@@ -97,14 +103,15 @@
       {#if loading}
         <span class="loading-dots" role="status">読み込み中...</span>
       {:else if user}
-        <div class="user-menu">
-          <span class="welcome-text">ようこそ、<strong>{user.name}</strong> 幹事</span>
-          <a href="/admin" class="btn btn-secondary btn-sm-nav">
-            <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
-            ダッシュボード
-          </a>
-          <button onclick={logout} class="btn btn-secondary btn-sm-nav">ログアウト</button>
-        </div>
+        <DropdownMenu items={userMenuItems}>
+          {#snippet trigger()}
+            <button type="button" class="user-menu-chip" aria-label="幹事アカウントメニュー">
+              <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
+              <span class="welcome-name">{user.name} 幹事</span>
+              <span class="material-symbols-rounded arrow-icon" aria-hidden="true">arrow_drop_down</span>
+            </button>
+          {/snippet}
+        </DropdownMenu>
       {:else}
         <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary btn-sm-nav">
           <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
@@ -569,6 +576,36 @@
   .footer-tagline {
     font-size: 0.82rem;
     color: var(--text-secondary);
+  }
+
+  .user-menu-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-full);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .user-menu-chip:hover {
+    background: rgba(42, 64, 50, 0.08);
+    border-color: rgba(42, 64, 50, 0.2);
+  }
+
+  .welcome-name {
+    color: var(--color-primary);
+  }
+
+  .arrow-icon {
+    font-size: 1.2rem;
+    color: var(--text-muted);
   }
 
   .copyright {
