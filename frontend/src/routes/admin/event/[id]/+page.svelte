@@ -303,7 +303,7 @@
             <table class="admin-table">
               <thead>
                 <tr>
-                  <th scope="col">日程</th>
+                  <th scope="col" class="sticky-col">日程</th>
                   {#each event.responses as resp}
                     <th scope="col">
                       <div class="th-resp">
@@ -325,7 +325,7 @@
               <tbody>
                 {#each event.candidates as cand}
                   <tr class:confirmed-row={event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}>
-                    <th scope="row" class="td-datetime font-mono">
+                    <th scope="row" class="td-datetime sticky-col font-mono">
                       {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
                       {#if event.status === 'confirmed' && event.confirmed_candidate_id === cand.id}
                         <span class="conf-label">確定</span>
@@ -649,6 +649,15 @@
 
   .btn-del-resp .material-symbols-rounded {
     font-size: 0.85rem;
+  }
+
+  .sticky-col {
+    position: sticky;
+    left: 0;
+    background: var(--bg-secondary);
+    z-index: 10;
+    min-width: 125px;
+    border-right: 1px solid var(--border-glass);
   }
 
   .td-datetime {

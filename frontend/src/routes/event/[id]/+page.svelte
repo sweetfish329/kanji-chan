@@ -1045,11 +1045,17 @@
     min-height: 40px;
   }
 
-  @media (max-width: 380px) {
-    /* Very small screens: smaller status buttons */
+  @media (max-width: 600px) {
+    .btn-group-status {
+      width: 100%;
+    }
+
     .btn-status-choice {
-      padding: 0.5rem 0.75rem;
-      font-size: 0.8rem;
+      flex: 1;
+      justify-content: center;
+      text-align: center;
+      padding: 0.5rem 0.25rem;
+      font-size: 0.82rem;
     }
   }
 

@@ -877,8 +877,23 @@ X-API-Key: kc_your_api_key_here</code></pre>
   @media (max-width: 600px) {
     .event-row {
       flex-direction: column;
-      align-items: flex-start;
-      gap: 1.5rem;
+      align-items: stretch;
+      gap: 1.25rem;
+      padding: 1.25rem;
+    }
+
+    .event-actions {
+      width: 100%;
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .event-actions .btn-sm {
+      flex: 1;
+      text-align: center;
+      justify-content: center;
+      padding: 0.6rem 0.5rem;
+      font-size: 0.82rem;
     }
   }
 
@@ -1222,7 +1237,21 @@ X-API-Key: kc_your_api_key_here</code></pre>
   @media (max-width: 600px) {
     .apikey-row {
       flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+      padding: 1rem;
+    }
+
+    .apikey-info {
+      flex-direction: column;
       align-items: flex-start;
+      gap: 0.25rem;
+    }
+
+    .apikey-meta {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.2rem;
     }
   }
 
