@@ -1,8 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem } from '$lib';
-  import { toast } from '@zerodevx/svelte-toast';
+  import { Accordion, AccordionItem, toast } from '$lib';
   import { reveal } from '$lib/reveal';
 
   // サイトURL (VITE_PUBLIC_SITE_URL 環境変数から取得。未設定時は空文字 = 相対URL)

@@ -2,11 +2,10 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, Dialog, ToggleGroup, type ToggleItemOption } from '$lib';
+  import { Accordion, AccordionItem, Dialog, Popover, ToggleGroup, Tooltip, toast, type ToggleItemOption } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import copy from 'copy-to-clipboard';
-  import { toast } from '@zerodevx/svelte-toast';
 
   import { reveal } from '$lib/reveal';
 

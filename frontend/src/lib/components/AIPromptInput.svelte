@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Tooltip } from 'bits-ui';
+  import Tooltip from './ui/Tooltip.svelte';
 
   export interface AttachedImage {
     id: string;
@@ -133,8 +133,7 @@
   }
 </script>
 
-<Tooltip.Provider>
-  <div 
+<div 
     class="ai-prompt-container" 
     class:is-dragging={isDragging}
     role="region"
@@ -183,14 +182,13 @@
               {/if}
             </div>
             
-            <Tooltip.Root>
-              <Tooltip.Trigger class="btn-remove-img" aria-label={`画像 ${img.name} を削除`} onclick={() => removeImage(img.id)}>
-                <span class="material-symbols-rounded">close</span>
-              </Tooltip.Trigger>
-              <Tooltip.Content class="bits-tooltip-content" side="top">
-                添付画像を削除
-              </Tooltip.Content>
-            </Tooltip.Root>
+            <Tooltip content="添付画像を削除" side="top">
+              {#snippet trigger()}
+                <button type="button" class="btn-remove-img" aria-label={`画像 ${img.name} を削除`} onclick={() => removeImage(img.id)}>
+                  <span class="material-symbols-rounded">close</span>
+                </button>
+              {/snippet}
+            </Tooltip>
           </div>
         {/each}
       </div>
@@ -212,20 +210,19 @@
       <div class="input-actions-bar">
         <div class="left-tools">
           <!-- Image Attach Button with Bits UI Tooltip -->
-          <Tooltip.Root>
-            <Tooltip.Trigger
-              type="button" 
-              class="tool-btn attachment-btn"
-              disabled={disabled || isSubmitting}
-              onclick={() => fileInputRef?.click()}
-            >
-              <span class="material-symbols-rounded">add_photo_alternate</span>
-              <span class="tool-label">画像添付</span>
-            </Tooltip.Trigger>
-            <Tooltip.Content class="bits-tooltip-content" side="top">
-              チラシ・カレンダー・メモ写真を添付
-            </Tooltip.Content>
-          </Tooltip.Root>
+          <Tooltip content="チラシ・カレンダー・メモ写真を添付" side="top">
+            {#snippet trigger()}
+              <button
+                type="button" 
+                class="tool-btn attachment-btn"
+                disabled={disabled || isSubmitting}
+                onclick={() => fileInputRef?.click()}
+              >
+                <span class="material-symbols-rounded">add_photo_alternate</span>
+                <span class="tool-label">画像添付</span>
+              </button>
+            {/snippet}
+          </Tooltip>
 
           <input 
             type="file" 
@@ -255,7 +252,6 @@
       </div>
     </div>
   </div>
-</Tooltip.Provider>
 
 <style>
   .ai-prompt-container {

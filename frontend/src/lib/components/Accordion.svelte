@@ -17,7 +17,7 @@
   }: Props = $props();
 </script>
 
-<Accordion.Root {type} bind:value class="accordion-group {className}">
+<Accordion.Root type="multiple" class="accordion-group {className}">
   {@render children?.()}
 </Accordion.Root>
 

@@ -2,8 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, Dialog, DropdownMenu, type MenuItem } from '$lib';
-  import { SvelteToast } from '@zerodevx/svelte-toast';
+  import { Accordion, AccordionItem, Dialog, DropdownMenu, Toast, type MenuItem } from '$lib';
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -107,7 +106,7 @@
           {#snippet trigger()}
             <button type="button" class="user-menu-chip" aria-label="幹事アカウントメニュー">
               <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
-              <span class="welcome-name">{user.name} 幹事</span>
+              <span class="welcome-name">{user?.name} 幹事</span>
               <span class="material-symbols-rounded arrow-icon" aria-hidden="true">arrow_drop_down</span>
             </button>
           {/snippet}
@@ -239,7 +238,7 @@
   {/if}
 </header>
 
-<SvelteToast />
+<Toast />
 
 <main id="main-content" tabindex="-1">
   {@render children()}

@@ -28,19 +28,21 @@
 <Accordion.Item {value} {disabled} class="accordion-item {className}">
   <Accordion.Header class="accordion-header-wrapper">
     <Accordion.Trigger class="accordion-header">
-      {#snippet children({ open })}
-        <div class="accordion-title-wrapper">
-          {#if icon}
-            <span class="material-symbols-rounded accordion-icon" aria-hidden="true">{icon}</span>
-          {/if}
-          <span class="accordion-title-text">{title}</span>
-          {#if badge}
-            <span class="accordion-badge">{badge}</span>
-          {/if}
-        </div>
-        <span class="material-symbols-rounded accordion-arrow" class:rotated={open} aria-hidden="true">
-          expand_more
-        </span>
+      {#snippet child({ props })}
+        <button {...props} type="button" class="accordion-header">
+          <div class="accordion-title-wrapper">
+            {#if icon}
+              <span class="material-symbols-rounded accordion-icon" aria-hidden="true">{icon}</span>
+            {/if}
+            <span class="accordion-title-text">{title}</span>
+            {#if badge}
+              <span class="accordion-badge">{badge}</span>
+            {/if}
+          </div>
+          <span class="material-symbols-rounded accordion-arrow" aria-hidden="true">
+            expand_more
+          </span>
+        </button>
       {/snippet}
     </Accordion.Trigger>
   </Accordion.Header>

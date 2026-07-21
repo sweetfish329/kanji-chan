@@ -2,10 +2,9 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, Dialog, Select, Switch, type AttachedImage, type SelectOptionItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Dialog, Popover, Select, Switch, toast, type AttachedImage, type SelectOptionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
-  import { toast } from '@zerodevx/svelte-toast';
 
   dayjs.locale('ja');
 
@@ -518,11 +517,14 @@
     </div>
   {/if}
 
-  <!-- Bits UI Schedule Confirmation Dialog -->
-  <Dialog
+  <!-- Bits UI AlertDialog for Schedule Confirmation -->
+  <AlertDialog
     bind:open={confirmDialogOpen}
     title="開催日程の確定確認"
     description="選択した開催日時で確定し、回答者に結果を公開します。確定してよろしいですか？"
+    confirmText="確定を保存する"
+    cancelText="キャンセル"
+    onConfirm={confirmSchedule}
   >
     {#if selectedCandidateId && event}
       {@const selectedCand = event.candidates.find(c => c.id === selectedCandidateId)}
@@ -532,24 +534,7 @@
         </div>
       {/if}
     {/if}
-
-    <div class="dialog-actions-row">
-      <button type="button" class="btn btn-secondary" onclick={() => confirmDialogOpen = false}>
-        キャンセル
-      </button>
-      <button 
-        type="button" 
-        class="btn btn-primary" 
-        disabled={submitting}
-        onclick={() => {
-          confirmSchedule();
-          confirmDialogOpen = false;
-        }}
-      >
-        確定を保存する
-      </button>
-    </div>
-  </Dialog>
+  </AlertDialog>
 </div>
 
 <style>

@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, Dialog, DropdownMenu, Tabs, TabsContent, type AttachedImage, type MenuItem, type TabItem } from '$lib';
-  import { toast } from '@zerodevx/svelte-toast';
+  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Collapsible, DatePicker, Dialog, DropdownMenu, Progress, Tabs, TabsContent, toast, type AttachedImage, type MenuItem, type TabItem } from '$lib';
 
   interface User {
     id: number;
@@ -508,6 +507,7 @@
                       <p class="step-text animate-slide-up">✍️ イベントタイトルと説明文を生成中...</p>
                     {/if}
                   </div>
+                  <Progress value={(parsingStep + 1) * 33.3} max={100} label="AI解析ステップ" class="mt-2" />
                 </div>
               </div>
             {/if}
@@ -785,30 +785,20 @@ X-API-Key: kc_your_api_key_here</code></pre>
           </div>
         {/if}
       </section>
-      <!-- Bits UI Delete Confirmation Dialog -->
-      <Dialog
+      <!-- Bits UI AlertDialog for Event Deletion -->
+      <AlertDialog
         bind:open={deleteDialogOpen}
         title="イベントの削除確認"
         description={`「${targetDeleteEvent?.title}」を削除しますか？この操作は取り消せません。`}
-      >
-        <div class="dialog-actions-row">
-          <button type="button" class="btn btn-secondary" onclick={() => deleteDialogOpen = false}>
-            キャンセル
-          </button>
-          <button 
-            type="button" 
-            class="btn btn-danger" 
-            onclick={() => {
-              if (targetDeleteEvent) {
-                deleteEvent(targetDeleteEvent.id, targetDeleteEvent.title);
-                deleteDialogOpen = false;
-              }
-            }}
-          >
-            削除する
-          </button>
-        </div>
-      </Dialog>
+        confirmText="削除する"
+        cancelText="キャンセル"
+        danger={true}
+        onConfirm={() => {
+          if (targetDeleteEvent) {
+            deleteEvent(targetDeleteEvent.id, targetDeleteEvent.title);
+          }
+        }}
+      />
     </div>
   {/if}
 </div>
