@@ -47,6 +47,19 @@
     };
     window.addEventListener('resize', handleResize);
 
+    // iOS Safari ピンチズーム（マルチタッチ）防止
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+    const handleGestureStart = (e: Event) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('gesturestart', handleGestureStart, { passive: false });
+
     api.get<User>('/auth/me')
       .then((data) => {
         user = data;
@@ -58,7 +71,11 @@
         loading = false;
       });
 
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('gesturestart', handleGestureStart);
+    };
   });
 
   async function logout() {
