@@ -10,7 +10,7 @@ import (
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
 )
 
-// HandleParseEvent 自然文からイベント候補日を解析 (幹事専用)
+// HandleParseEvent 自然文および画像からイベント候補日を解析 (幹事専用)
 func HandleParseEvent(c *echo.Context) error {
 	claims, ok := GetUserFromContext(c)
 	if !ok {
@@ -18,14 +18,15 @@ func HandleParseEvent(c *echo.Context) error {
 	}
 
 	var req struct {
-		Text string `json:"text"`
+		Text   string          `json:"text"`
+		Images []ai.ImageInput `json:"images"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
 	}
 
-	if req.Text == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Text input is required")
+	if req.Text == "" && len(req.Images) == 0 {
+		return echo.NewHTTPError(http.StatusBadRequest, "Text input or image attachments are required")
 	}
 
 	// 幹事ユーザー情報を取得
@@ -34,7 +35,7 @@ func HandleParseEvent(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	parsed, err := ai.ParseEvent(c.Request().Context(), req.Text, &user)
+	parsed, err := ai.ParseEvent(c.Request().Context(), req.Text, req.Images, &user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "AI parsing failed: "+err.Error())
 	}
@@ -50,8 +51,9 @@ func HandleSuggestSchedule(c *echo.Context) error {
 	}
 
 	var req struct {
-		EventID     string `json:"event_id"`
-		Preferences string `json:"preferences"`
+		EventID     string          `json:"event_id"`
+		Preferences string          `json:"preferences"`
+		Images      []ai.ImageInput `json:"images"`
 	}
 	if err := c.Bind(&req); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request body")
@@ -84,7 +86,7 @@ func HandleSuggestSchedule(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusNotFound, "User not found")
 	}
 
-	suggestions, err := ai.SuggestSchedule(c.Request().Context(), &event, req.Preferences, &user)
+	suggestions, err := ai.SuggestSchedule(c.Request().Context(), &event, req.Preferences, req.Images, &user)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "AI suggestion failed: "+err.Error())
 	}

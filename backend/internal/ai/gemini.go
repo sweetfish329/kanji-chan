@@ -2,8 +2,10 @@ package ai
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/sweetfish329/kanji-chan/backend/internal/model"
@@ -18,6 +20,32 @@ import (
 const (
 	geminiModelName = "gemini-2.5-flash"
 )
+
+// ImageInput AIに送信する添付画像データ
+type ImageInput struct {
+	Data     string `json:"data"`      // Base64文字列 (Data URL "data:image/png;base64,..." または純粋なBase64)
+	MimeType string `json:"mime_type"` // e.g. "image/png", "image/jpeg"
+}
+
+func parseImageData(img ImageInput) ([]byte, string, error) {
+	dataStr := img.Data
+	mime := img.MimeType
+	if strings.Contains(dataStr, ";base64,") {
+		parts := strings.SplitN(dataStr, ";base64,", 2)
+		if strings.HasPrefix(parts[0], "data:") {
+			mime = strings.TrimPrefix(parts[0], "data:")
+		}
+		dataStr = parts[1]
+	}
+	b, err := base64.StdEncoding.DecodeString(dataStr)
+	if err != nil {
+		return nil, "", err
+	}
+	if mime == "" {
+		mime = "image/png"
+	}
+	return b, mime, nil
+}
 
 // getAPIKey 幹事ユーザーが個別に設定したAPIキーを取得 (環境変数へのフォールバックは行わない)
 func getAPIKey(user *model.User) string {
@@ -38,8 +66,8 @@ type ParsedEventResponse struct {
 	} `json:"candidates"`
 }
 
-// ParseEvent 自然文からイベント名と候補日を抽出する
-func ParseEvent(ctx context.Context, text string, user *model.User) (*ParsedEventResponse, error) {
+// ParseEvent 自然文および画像からイベント名と候補日を抽出する
+func ParseEvent(ctx context.Context, text string, images []ImageInput, user *model.User) (*ParsedEventResponse, error) {
 	apiKey := getAPIKey(user)
 	if apiKey == "" {
 		return nil, fmt.Errorf("Gemini APIキーが設定されていません。設定画面からGemini APIキーを登録するとAI機能を利用できます。")
@@ -76,22 +104,22 @@ func ParseEvent(ctx context.Context, text string, user *model.User) (*ParsedEven
 	}
 
 	currentTime := time.Now().Format("2006-01-02 (Monday)")
-	systemPrompt := fmt.Sprintf(`You are a scheduler AI helper. Your task is to analyze the user's natural language request and extract:
+	systemPrompt := fmt.Sprintf(`You are a scheduler AI helper. Your task is to analyze the user's request (text prompt and/or attached image files such as event flyers, calendar screenshots, schedule memos, or menu photos) and extract:
 1. A concise, nice title for the event.
-2. A description of the event.
-3. Candidate date and time slots based on the text.
+2. A description of the event (include details found in text or image).
+3. Candidate date and time slots based on the text or image content.
 
 Current date is: %s.
 Note:
-- If the user says "next week", calculate the dates based on the current date.
+- If the user or image says "next week", calculate the dates based on the current date.
 - Default to 2 hours duration if not specified.
-- Generate at least 2-4 candidate slots as requested or reasonable.`, currentTime)
+- Generate at least 2-4 candidate slots as requested or reasonable based on the flyer/image info.`, currentTime)
 
 	// 3. エージェントの初期化
 	eventAgent, err := llmagent.New(llmagent.Config{
 		Name:        "event_parser_agent",
 		Model:       modelClient,
-		Description: "Parses natural language queries into event candidates.",
+		Description: "Parses natural language and images into event candidates.",
 		Instruction: systemPrompt,
 		GenerateContentConfig: &genai.GenerateContentConfig{
 			ResponseMIMEType: "application/json",
@@ -113,7 +141,25 @@ Note:
 		return nil, fmt.Errorf("failed to create runner: %w", err)
 	}
 
-	inputMsg := genai.NewContentFromText(text, genai.RoleUser)
+	var parts []*genai.Part
+	if text != "" {
+		parts = append(parts, genai.NewPartFromText(text))
+	}
+	for _, img := range images {
+		b, mime, err := parseImageData(img)
+		if err == nil && len(b) > 0 {
+			parts = append(parts, genai.NewPartFromBytes(b, mime))
+		}
+	}
+	if len(parts) == 0 {
+		parts = append(parts, genai.NewPartFromText("Extract event info."))
+	}
+
+	inputMsg := &genai.Content{
+		Role:  genai.RoleUser,
+		Parts: parts,
+	}
+
 	events := r.Run(ctx, "organizer", "parse-session", inputMsg, agent.RunConfig{})
 
 	var responseText string
@@ -158,7 +204,7 @@ type AISuggestionResponse struct {
 }
 
 // SuggestSchedule 回答結果から候補日を絞り込む
-func SuggestSchedule(ctx context.Context, event *model.Event, preferences string, user *model.User) (*AISuggestionResponse, error) {
+func SuggestSchedule(ctx context.Context, event *model.Event, preferences string, images []ImageInput, user *model.User) (*AISuggestionResponse, error) {
 	apiKey := getAPIKey(user)
 	if apiKey == "" {
 		return nil, fmt.Errorf("Gemini APIキーが設定されていません。設定画面からGemini APIキーを登録するとAI機能を利用できます。")
@@ -200,13 +246,13 @@ func SuggestSchedule(ctx context.Context, event *model.Event, preferences string
 		Required: []string{"suggestions", "overall_analysis"},
 	}
 
-	systemPrompt := `You are an expert scheduler coordinator. Analyze the provided Event data which contains candidates (slots) and user responses.
+	systemPrompt := `You are an expert scheduler coordinator. Analyze the provided Event data which contains candidates (slots) and user responses, plus any organizer text preferences or attached image notes/memos/calendar screenshots.
 Each response has answers mapping to the candidates with status 'ok' (circle), 'maybe' (triangle), or 'ng' (cross).
 
 Your task:
 1. Score each candidate slot. (Standard scoring: 'ok' = 2 points, 'maybe' = 1 point, 'ng' = 0 points)
 2. Recommend the best 3 slots (or all slots if less than 3).
-3. Take into account the organizer's custom preferences (e.g. 'A is a key person', 'Prefer weekdays').
+3. Take into account the organizer's custom preferences and any attached images (e.g. 'A is a key person', 'Prefer weekdays', image notes).
 4. Provide a detailed explanation for each rank (who cannot attend, pros/cons).
 5. Write the response in Japanese.`
 
@@ -237,7 +283,19 @@ Your task:
 	}
 
 	promptText := fmt.Sprintf("Organizer Preferences: %s\n\nEvent Responses: %s", preferences, string(eventDataJSON))
-	inputMsg := genai.NewContentFromText(promptText, genai.RoleUser)
+	var parts []*genai.Part
+	parts = append(parts, genai.NewPartFromText(promptText))
+	for _, img := range images {
+		b, mime, err := parseImageData(img)
+		if err == nil && len(b) > 0 {
+			parts = append(parts, genai.NewPartFromBytes(b, mime))
+		}
+	}
+
+	inputMsg := &genai.Content{
+		Role:  genai.RoleUser,
+		Parts: parts,
+	}
 	events := r.Run(ctx, "organizer", "suggest-session", inputMsg, agent.RunConfig{})
 
 	var responseText string

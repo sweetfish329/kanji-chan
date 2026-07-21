@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, type AttachedImage } from '$lib';
   import { toast } from '@zerodevx/svelte-toast';
 
   interface User {
@@ -53,6 +53,7 @@
 
   // AI Creation state
   let aiTextInput = $state('');
+  let aiImages = $state<AttachedImage[]>([]);
   let isParsing = $state(false);
   let parseError = $state('');
   let parsedTitle = $state('');
@@ -178,10 +179,12 @@
     }
   }
 
-  // AIで自然文をパース
-  async function parseNaturalLanguage(e: SubmitEvent) {
-    e.preventDefault();
-    if (!aiTextInput.trim()) return;
+  // AIで自然文・画像をパース
+  async function parseNaturalLanguage() {
+    if (!aiTextInput.trim() && aiImages.length === 0) {
+      toast.push('指示テキストを入力するか、画像を添付してください');
+      return;
+    }
     
     isParsing = true;
     parseError = '';
@@ -193,9 +196,13 @@
     }, 1000);
     
     try {
+      const payload = {
+        text: aiTextInput,
+        images: aiImages.map(img => ({ data: img.data, mime_type: img.mime_type }))
+      };
       const result = await api.post<{ title: string; description: string; candidates: CandidateInput[] }>(
         '/ai/parse-event', 
-        { text: aiTextInput }
+        payload
       );
       
       parsedTitle = result.title;
@@ -459,40 +466,17 @@
             <h2 class="section-title">
               <span class="gradient-text">✨ AIアシスタントでイベント作成</span>
             </h2>
-            <p class="tab-intro">やりたいイベントの内容や日時の希望を自然文で書くと、AIが調整用の日程候補を自動抽出します。</p>
+            <p class="tab-intro">やりたいイベントの希望内容をテキストで入力するか、イベントチラシ・居酒屋のコース案内・カレンダーのスクショ・メモ写真を添付・ドロップしてください。AIが候補日時を自動抽出します。</p>
 
-            <!-- Quick Template Chips -->
-            <div class="template-chips-area">
-              <span class="chips-label">💡 ワンタップ入力テンプレート:</span>
-              <div class="chips-list">
-                {#each aiTemplates as tpl}
-                  <button 
-                    type="button" 
-                    class="chip-btn"
-                    onclick={() => applyAiTemplate(tpl.text)}
-                  >
-                    {tpl.label}
-                  </button>
-                {/each}
-              </div>
-            </div>
-            
-            <form onsubmit={parseNaturalLanguage} class="ai-prompt-form">
-              <div class="form-group">
-                <label for="ai-text">イベントの希望内容</label>
-                <textarea 
-                  id="ai-text" 
-                  rows="4" 
-                  placeholder="e.g. 来週の平日（月曜〜水曜）の19時以降で、新宿付近で3名で懇親会をやりたい。時間は2時間程度で。候補日は3個くらい出して。"
-                  bind:value={aiTextInput}
-                  disabled={isParsing}
-                ></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary ai-submit-btn" class:parsing={isParsing} disabled={isParsing}>
-                <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isParsing} aria-hidden="true">auto_awesome</span>
-                {isParsing ? 'AIが解析中...' : 'AIに日程を抽出してもらう'}
-              </button>
-            </form>
+            <AIPromptInput
+              bind:prompt={aiTextInput}
+              bind:images={aiImages}
+              placeholder="e.g. 来週の平日夜に渋谷で懇親会（イベント案内画像やチラシ・メモ写真のドラッグ＆ドロップ添付も可能）"
+              submitLabel="AIでイベント候補を抽出する"
+              isSubmitting={isParsing}
+              templates={aiTemplates}
+              onSubmit={parseNaturalLanguage}
+            />
 
             {#if isParsing}
               <div class="ai-loading-card glass-panel animate-fade-in" role="status">

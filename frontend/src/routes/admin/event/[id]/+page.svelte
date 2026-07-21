@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, type AttachedImage } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import { toast } from '@zerodevx/svelte-toast';
@@ -62,6 +62,7 @@
 
   // AI analysis states
   let preferencesInput = $state('');
+  let aiImages = $state<AttachedImage[]>([]);
   let isAnalyzing = $state(false);
   let aiSuggestions = $state<AISuggestionsResponse | null>(null);
 
@@ -125,10 +126,12 @@
     }, 1000);
     
     try {
-      const data = await api.post<AISuggestionsResponse>('/ai/suggest-schedule', {
+      const payload = {
         event_id: eventId,
-        preferences: preferencesInput
-      });
+        preferences: preferencesInput,
+        images: aiImages.map(img => ({ data: img.data, mime_type: img.mime_type }))
+      };
+      const data = await api.post<AISuggestionsResponse>('/ai/suggest-schedule', payload);
       aiSuggestions = data;
       
       // AI推薦の1番（Rank 1）を自動的にデフォルト選択にする
@@ -356,29 +359,15 @@
               <p>回答者がまだ集まっていません。日程提案には回答データが必要です。</p>
             </div>
           {:else}
-            <div class="form-group">
-              <label for="prefs">幹事のこだわり・追加条件</label>
-              <textarea 
-                id="prefs" 
-                rows="3" 
-                placeholder="e.g. Aさんは必須参加でお願いします。なるべく週末が良いです。多少人数が減ってもいいので全員が〇の日を優先して。"
-                bind:value={preferencesInput}
-                disabled={event.status === 'confirmed'}
-              ></textarea>
-            </div>
-
-            {#if event.status !== 'confirmed'}
-              <button 
-                type="button" 
-                class="btn btn-primary w-full ai-analyze-btn" 
-                class:analyzing={isAnalyzing}
-                onclick={runAIAnalysis}
-                disabled={isAnalyzing}
-              >
-                <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isAnalyzing} aria-hidden="true">auto_awesome</span>
-                {isAnalyzing ? 'AIが最適日程を推論中...' : 'AIに最適な日程を絞り込ませる'}
-              </button>
-            {/if}
+            <AIPromptInput
+              bind:prompt={preferencesInput}
+              bind:images={aiImages}
+              placeholder="e.g. Aさんは必須で参加。なるべく金曜日を優先（条件メモ・希望カレンダー画像のドラッグ＆ドロップ添付も可能）"
+              submitLabel="AIに最適な日程を絞り込ませる"
+              isSubmitting={isAnalyzing}
+              disabled={event.status === 'confirmed'}
+              onSubmit={runAIAnalysis}
+            />
           {/if}
 
           {#if isAnalyzing}
