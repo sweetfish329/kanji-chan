@@ -14,7 +14,7 @@
   interface Props {
     items: MenuItem[];
     class?: string;
-    trigger?: Snippet;
+    trigger?: Snippet<[Record<string, any>]>;
   }
 
   let { items = [], class: className = '', trigger }: Props = $props();
@@ -24,7 +24,7 @@
   <DropdownMenu.Trigger class="bits-dropdown-trigger {className}">
     {#snippet child({ props })}
       {#if trigger}
-        {@render trigger()}
+        {@render trigger(props)}
       {:else}
         <button type="button" {...props} class="btn btn-secondary btn-sm-menu" aria-label="操作メニュー">
           <span class="material-symbols-rounded" aria-hidden="true">more_vert</span>

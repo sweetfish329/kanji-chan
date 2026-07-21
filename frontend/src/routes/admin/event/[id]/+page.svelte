@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Dialog, Popover, Select, Switch, toast, type AttachedImage, type SelectOptionItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Popover, Select, Switch, toast, type AttachedImage, type SelectOptionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
 
@@ -70,6 +70,9 @@
   let selectedCandidateIdStr = $state<string>('');
   let submitting = $state(false);
   let confirmDialogOpen = $state(false);
+  let cancelConfirmDialogOpen = $state(false);
+  let deleteResponseDialogOpen = $state(false);
+  let responseToDelete = $state<{ id: number; name: string } | null>(null);
 
   $effect(() => {
     if (selectedCandidateId !== null) {
@@ -210,11 +213,7 @@
   }
 
   // 確定取り消し
-  async function cancelConfirmation() {
-    if (!confirm('日程確定を解除し、再度調整中に戻しますか？')) {
-      return;
-    }
-
+  async function handleConfirmCancelConfirmation() {
     submitting = true;
     try {
       const updated = await api.put<Event>(`/events/${eventId}`, {
@@ -225,34 +224,28 @@
       selectedCandidateId = null;
       toast.push('調整中に戻しました。');
     } catch (err: any) {
-      toast.push('解除に失敗しました: ' + err.message, {
-        theme: {
-          '--toastBackground': 'var(--color-ng)',
-          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
-        }
-      });
+      toast.push('解除に失敗しました: ' + err.message);
     } finally {
       submitting = false;
     }
   }
 
+  function openDeleteResponseDialog(id: number, name: string) {
+    responseToDelete = { id, name };
+    deleteResponseDialogOpen = true;
+  }
+
   // 回答の削除
-  async function deleteResponse(responseId: number, name: string) {
-    if (!confirm(`「${name}」さんの回答を削除しますか？`)) {
-      return;
-    }
-    
+  async function handleConfirmDeleteResponse() {
+    if (!responseToDelete) return;
     try {
-      await api.delete(`/events/${eventId}/responses/${responseId}`);
+      await api.delete(`/events/${eventId}/responses/${responseToDelete.id}`);
       toast.push('回答を削除しました');
       await loadEvent();
     } catch (err: any) {
-      toast.push('回答の削除に失敗しました: ' + err.message, {
-        theme: {
-          '--toastBackground': 'var(--color-ng)',
-          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
-        }
-      });
+      toast.push('回答の削除に失敗しました: ' + err.message);
+    } finally {
+      responseToDelete = null;
     }
   }
 
@@ -316,7 +309,7 @@
                       <div class="th-resp">
                         <span>{resp.respondent_name}</span>
                         <button 
-                          onclick={() => deleteResponse(resp.id, resp.respondent_name)} 
+                          onclick={() => openDeleteResponseDialog(resp.id, resp.respondent_name)} 
                           class="btn-del-resp" 
                           title="回答削除"
                           aria-label={`「${resp.respondent_name}」の回答を削除`}
@@ -482,7 +475,7 @@
             <button 
               type="button" 
               class="btn btn-secondary w-full" 
-              onclick={cancelConfirmation}
+              onclick={() => cancelConfirmDialogOpen = true}
               disabled={submitting}
             >
               確定をキャンセルして再調整
@@ -535,6 +528,28 @@
       {/if}
     {/if}
   </AlertDialog>
+
+  <!-- Bits UI AlertDialog for Cancel Confirmation -->
+  <AlertDialog
+    bind:open={cancelConfirmDialogOpen}
+    title="日程確定の解除確認"
+    description="日程確定を解除し、再度調整中に戻しますか？"
+    confirmText="解除する"
+    cancelText="キャンセル"
+    danger={true}
+    onConfirm={handleConfirmCancelConfirmation}
+  />
+
+  <!-- Bits UI AlertDialog for Response Deletion -->
+  <AlertDialog
+    bind:open={deleteResponseDialogOpen}
+    title="回答の削除確認"
+    description={responseToDelete ? `「${responseToDelete.name}」さんの回答を削除しますか？` : ''}
+    confirmText="削除する"
+    cancelText="キャンセル"
+    danger={true}
+    onConfirm={handleConfirmDeleteResponse}
+  />
 </div>
 
 <style>

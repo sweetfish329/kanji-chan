@@ -2,7 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, Dialog, DropdownMenu, Toast, type MenuItem } from '$lib';
+  import { Accordion, AccordionItem, DropdownMenu, Toast, type MenuItem } from '$lib';
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -103,8 +103,8 @@
         <span class="loading-dots" role="status">読み込み中...</span>
       {:else if user}
         <DropdownMenu items={userMenuItems}>
-          {#snippet trigger()}
-            <button type="button" class="user-menu-chip" aria-label="幹事アカウントメニュー">
+          {#snippet trigger(props)}
+            <button type="button" {...props} class="user-menu-chip" aria-label="幹事アカウントメニュー">
               <span class="material-symbols-rounded" aria-hidden="true">account_circle</span>
               <span class="welcome-name">{user?.name} 幹事</span>
               <span class="material-symbols-rounded arrow-icon" aria-hidden="true">arrow_drop_down</span>

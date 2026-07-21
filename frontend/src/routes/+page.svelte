@@ -1,7 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, toast } from '$lib';
+  import { Accordion, AccordionItem, DatePicker, toast } from '$lib';
   import { reveal } from '$lib/reveal';
 
   // サイトURL (VITE_PUBLIC_SITE_URL 環境変数から取得。未設定時は空文字 = 相対URL)
@@ -175,11 +175,9 @@
           <div class="candidate-list" role="group" aria-labelledby="candidates-label">
             {#each candidates as cand, index}
               <div class="candidate-row">
-                <input 
-                  type="date" 
+                <DatePicker 
                   bind:value={cand.event_date} 
-                  required 
-                  aria-label={`候補日 ${index + 1}`} 
+                  placeholder={`候補日 ${index + 1}`} 
                 />
                 <input 
                   type="time" 

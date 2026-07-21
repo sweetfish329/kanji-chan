@@ -1,3 +1,18 @@
-# allow crawling everything by default
 User-agent: *
-Disallow:
+Allow: /$
+Disallow: /event/
+Disallow: /admin/
+Disallow: /api/
+
+# SNS・メッセージングボット向けOGPプレビューの許可
+User-agent: Twitterbot
+User-agent: Discordbot
+User-agent: facebookexternalhit
+User-agent: Linespider
+User-agent: Slackbot
+User-agent: SkypeUriPreview
+Allow: /event/
+Allow: /api/ogp/
+Disallow: /admin/
+
+Sitemap: https://kanji-chan.app/sitemap.xml

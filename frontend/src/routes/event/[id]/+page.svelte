@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, Dialog, Popover, ToggleGroup, Tooltip, toast, type ToggleItemOption } from '$lib';
+  import { Accordion, AccordionItem, AlertDialog, Popover, ToggleGroup, Tooltip, toast, type ToggleItemOption } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import copy from 'copy-to-clipboard';
@@ -61,6 +61,9 @@
   let isEditing = $state(false);
   let editingResponseId = $state<number | null>(null);
   let responseTokens = $state<Record<number, string>>({}); // { responseId: editToken }
+
+  let deleteResponseDialogOpen = $state(false);
+  let responseToDelete = $state<{ id: number; name: string } | null>(null);
 
   let shareUrl = $state('');
 
@@ -256,11 +259,14 @@
     }
   }
 
-  async function deleteResponse(responseId: number, name: string) {
-    if (!confirm(`「${name}」さんの回答を削除しますか？`)) {
-      return;
-    }
-    
+  function openDeleteResponseDialog(id: number, name: string) {
+    responseToDelete = { id, name };
+    deleteResponseDialogOpen = true;
+  }
+
+  async function handleConfirmDeleteResponse() {
+    if (!responseToDelete) return;
+    const responseId = responseToDelete.id;
     try {
       const token = responseTokens[responseId];
       const headers = token ? { 'X-Response-Token': token } : undefined;
@@ -279,12 +285,9 @@
       await loadEvent();
     } catch (err) {
       const msg = err instanceof Error ? err.message : '削除に失敗しました。';
-      toast.push('回答の削除に失敗しました: ' + msg, {
-        theme: {
-          '--toastBackground': 'var(--color-ng)',
-          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
-        }
-      });
+      toast.push('回答の削除に失敗しました: ' + msg);
+    } finally {
+      responseToDelete = null;
     }
   }
 
@@ -397,7 +400,7 @@
                         class:my-btn={isMyResponse(resp.id)}
                         title="回答を削除"
                         aria-label={`「${resp.respondent_name}」の回答を削除`}
-                        onclick={() => deleteResponse(resp.id, resp.respondent_name)}
+                        onclick={() => openDeleteResponseDialog(resp.id, resp.respondent_name)}
                       >
                         <span class="material-symbols-rounded" aria-hidden="true">close</span>
                       </button>
@@ -563,6 +566,17 @@
       </div>
     {/if}
   {/if}
+
+  <!-- Bits UI AlertDialog for Response Deletion -->
+  <AlertDialog
+    bind:open={deleteResponseDialogOpen}
+    title="回答の削除確認"
+    description={responseToDelete ? `「${responseToDelete.name}」さんの回答を削除しますか？` : ''}
+    confirmText="削除する"
+    cancelText="キャンセル"
+    danger={true}
+    onConfirm={handleConfirmDeleteResponse}
+  />
 </div>
 
 <style>

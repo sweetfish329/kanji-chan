@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Collapsible, DatePicker, Dialog, DropdownMenu, Progress, Tabs, TabsContent, toast, type AttachedImage, type MenuItem, type TabItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Collapsible, DatePicker, Progress, Tabs, TabsContent, toast, type AttachedImage, type MenuItem, type TabItem } from '$lib';
 
   interface User {
     id: number;
@@ -43,9 +43,18 @@
   let deleteDialogOpen = $state(false);
   let targetDeleteEvent = $state<{ id: string; title: string } | null>(null);
 
+  // Bits UI AlertDialog API Key Delete State
+  let deleteApiKeyDialogOpen = $state(false);
+  let apiKeyToDelete = $state<{ id: number; name: string } | null>(null);
+
   function openDeleteDialog(id: string, title: string) {
     targetDeleteEvent = { id, title };
     deleteDialogOpen = true;
+  }
+
+  function openDeleteApiKeyDialog(id: number, name: string) {
+    apiKeyToDelete = { id, name };
+    deleteApiKeyDialogOpen = true;
   }
 
   let adminTabs = $derived<TabItem[]>([
@@ -152,22 +161,18 @@
     }
   }
 
-  async function deleteUserApiKey(id: number, name: string) {
-    if (!confirm(`APIキー「${name}」を削除しますか？\nこのキーを使用している連携サービス（MCPやAPI）はアクセスできなくなります。`)) {
-      return;
-    }
+  async function handleConfirmDeleteApiKey() {
+    if (!apiKeyToDelete) return;
+    const { id, name } = apiKeyToDelete;
     try {
       await api.delete(`/auth/apikeys/${id}`);
       userApiKeys = userApiKeys.filter(k => k.id !== id);
       toast.push(`APIキー「${name}」を削除しました`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : '削除に失敗しました';
-      toast.push('APIキーの削除に失敗しました: ' + msg, {
-        theme: {
-          '--toastBackground': 'var(--color-ng)',
-          '--toastBarBackground': 'rgba(255, 255, 255, 0.3)'
-        }
-      });
+      toast.push('APIキーの削除に失敗しました: ' + msg);
+    } finally {
+      apiKeyToDelete = null;
     }
   }
 
@@ -387,47 +392,8 @@
           <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
           <h3>幹事ダッシュボード</h3>
         </div>
-        <div class="sidebar-menu" role="tablist" aria-label="ダッシュボードメニュー">
-          <button 
-            class="sidebar-btn" 
-            class:active={activeTab === 'list'}
-            role="tab"
-            aria-selected={activeTab === 'list'}
-            onclick={() => activeTab = 'list'}
-          >
-            <span class="material-symbols-rounded" aria-hidden="true">list_alt</span>
-            イベント一覧 ({events.length})
-          </button>
-          <button 
-            class="sidebar-btn" 
-            class:active={activeTab === 'create-ai'}
-            role="tab"
-            aria-selected={activeTab === 'create-ai'}
-            onclick={() => activeTab = 'create-ai'}
-          >
-            <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
-            AIでイベント作成
-          </button>
-          <button 
-            class="sidebar-btn" 
-            class:active={activeTab === 'create-manual'}
-            role="tab"
-            aria-selected={activeTab === 'create-manual'}
-            onclick={() => activeTab = 'create-manual'}
-          >
-            <span class="material-symbols-rounded" aria-hidden="true">add_circle</span>
-            手動でイベント作成
-          </button>
-          <button 
-            class="sidebar-btn" 
-            class:active={activeTab === 'settings'}
-            role="tab"
-            aria-selected={activeTab === 'settings'}
-            onclick={() => activeTab = 'settings'}
-          >
-            <span class="material-symbols-rounded" aria-hidden="true">settings</span>
-            ユーザー設定 & APIキー
-          </button>
+        <div class="sidebar-menu">
+          <Tabs items={adminTabs} bind:value={activeTab} />
         </div>
       </aside>
 
@@ -544,7 +510,7 @@
                     {#each parsedCandidates as cand, index}
                       <div class="candidate-row animated-row" style="animation-delay: {index * 0.08}s">
                         <span class="row-num font-mono">{index + 1}</span>
-                        <input type="date" bind:value={cand.event_date} aria-label={`AI抽出 候補日 ${index + 1}`} />
+                        <DatePicker bind:value={cand.event_date} placeholder={`候補日 ${index + 1}`} />
                         <input type="time" bind:value={cand.start_time} aria-label={`AI抽出 開始時刻 ${index + 1}`} />
                         <span class="time-separator" aria-hidden="true">〜</span>
                         <input type="time" bind:value={cand.end_time} aria-label={`AI抽出 終了時刻 ${index + 1}`} />
@@ -611,7 +577,7 @@
               <div role="group" aria-labelledby="manual-cand-label">
                 {#each manualCandidates as cand, index}
                   <div class="candidate-row">
-                    <input type="date" bind:value={cand.event_date} aria-label={`手動入力 候補日 ${index + 1}`} />
+                    <DatePicker bind:value={cand.event_date} placeholder={`候補日 ${index + 1}`} />
                     <input type="time" bind:value={cand.start_time} aria-label={`手動入力 開始時刻 ${index + 1}`} />
                     <span class="time-separator" aria-hidden="true">〜</span>
                     <input type="time" bind:value={cand.end_time} aria-label={`手動入力 終了時刻 ${index + 1}`} />
@@ -726,7 +692,7 @@
                           class="btn btn-danger btn-sm-del" 
                           title="APIキーを削除" 
                           aria-label={`APIキー「${k.name}」を削除`}
-                          onclick={() => deleteUserApiKey(k.id, k.name)}
+                          onclick={() => openDeleteApiKeyDialog(k.id, k.name)}
                         >
                           <span class="material-symbols-rounded" aria-hidden="true">delete</span>
                         </button>
@@ -798,6 +764,17 @@ X-API-Key: kc_your_api_key_here</code></pre>
             deleteEvent(targetDeleteEvent.id, targetDeleteEvent.title);
           }
         }}
+      />
+
+      <!-- Bits UI AlertDialog for API Key Deletion -->
+      <AlertDialog
+        bind:open={deleteApiKeyDialogOpen}
+        title="APIキーの削除確認"
+        description={apiKeyToDelete ? `APIキー「${apiKeyToDelete.name}」を削除しますか？このキーを使用している連携サービス（MCPやAPI）はアクセスできなくなります。` : ''}
+        confirmText="削除する"
+        cancelText="キャンセル"
+        danger={true}
+        onConfirm={handleConfirmDeleteApiKey}
       />
     </div>
   {/if}
