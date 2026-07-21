@@ -392,7 +392,7 @@
             {:else}
               <div class="events-list">
                 {#each events as event}
-                  <div class="event-row glass-panel">
+                  <div class="event-row">
                     <div class="event-info">
                       <div class="event-header-row">
                         <h4>{event.title}</h4>
@@ -874,7 +874,7 @@ X-API-Key: kc_your_api_key_here</code></pre>
   .events-list {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.85rem;
   }
 
   .event-header-row {
@@ -889,28 +889,50 @@ X-API-Key: kc_your_api_key_here</code></pre>
     margin-bottom: 0;
   }
 
+  .event-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: #FAF8F5;
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+  }
+
+  .event-row:hover {
+    border-color: rgba(42, 64, 50, 0.25);
+  }
+
   @media (max-width: 600px) {
     .event-row {
       flex-direction: column;
       align-items: stretch;
-      gap: 1rem;
-      padding: 1.15rem;
+      gap: 0.85rem;
+      padding: 1rem 0.85rem;
+      border-radius: var(--radius-sm);
     }
 
     .event-actions {
       width: 100%;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 0.5rem;
+      gap: 0.4rem;
     }
 
     .event-actions .btn-sm {
       width: 100%;
       text-align: center;
       justify-content: center;
-      padding: 0.65rem 0.3rem;
-      font-size: 0.8rem;
+      padding: 0.6rem 0.25rem;
+      font-size: 0.78rem;
       white-space: nowrap;
+      gap: 0.25rem;
+    }
+
+    .event-actions .btn-sm .material-symbols-rounded {
+      font-size: 1rem;
     }
   }
 

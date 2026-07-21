@@ -136,17 +136,32 @@
       {/if}
     </nav>
 
-    <!-- Mobile Nav Toggle -->
-    <button
-      class="mobile-menu-btn"
-      onclick={toggleMobileMenu}
-      aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
-      aria-expanded={mobileMenuOpen}
-    >
-      <span class="material-symbols-rounded" aria-hidden="true">
-        {mobileMenuOpen ? 'close' : 'menu'}
-      </span>
-    </button>
+    <!-- Mobile Header Controls -->
+    <div class="mobile-header-right">
+      {#if user}
+        <a href="/admin" class="mobile-user-chip" title="幹事ダッシュボード">
+          <span class="material-symbols-rounded icon" aria-hidden="true">account_circle</span>
+          <span class="mobile-user-name">{user?.name}</span>
+        </a>
+      {:else}
+        <a href="{apiBaseUrl}/api/auth/login" class="mobile-login-btn-header">
+          <span class="material-symbols-rounded" aria-hidden="true">login</span>
+          ログイン
+        </a>
+      {/if}
+
+      <!-- Mobile Nav Toggle -->
+      <button
+        class="mobile-menu-btn"
+        onclick={toggleMobileMenu}
+        aria-label={mobileMenuOpen ? "メニューを閉じる" : "メニューを開く"}
+        aria-expanded={mobileMenuOpen}
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">
+          {mobileMenuOpen ? 'close' : 'menu'}
+        </span>
+      </button>
+    </div>
   </div>
 
   <!-- Mobile Accordion Menu -->
@@ -629,12 +644,71 @@
     font-size: 0.78rem;
   }
 
+  .mobile-header-right {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .mobile-user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    background: rgba(42, 64, 50, 0.08);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-full);
+    color: var(--color-primary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    max-width: 140px;
+    transition: background-color var(--transition-fast);
+  }
+
+  .mobile-user-chip:active {
+    background: rgba(42, 64, 50, 0.15);
+  }
+
+  .mobile-user-chip .icon {
+    font-size: 1.1rem;
+    color: var(--color-primary);
+    flex-shrink: 0;
+  }
+
+  .mobile-user-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobile-login-btn-header {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.65rem;
+    background: var(--color-primary);
+    color: #FAF8F5;
+    border-radius: var(--radius-full);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+  }
+
+  .mobile-login-btn-header .material-symbols-rounded {
+    font-size: 1rem;
+  }
+
   /* ==============================
      Mobile-specific overrides
      ============================== */
   @media (max-width: 768px) {
     .desktop-nav {
       display: none;
+    }
+
+    .mobile-header-right {
+      display: flex;
     }
 
     .mobile-menu-btn {
