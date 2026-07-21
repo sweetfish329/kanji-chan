@@ -1,70 +1,59 @@
 <script lang="ts">
+  import { Accordion } from 'bits-ui';
   import type { Snippet } from 'svelte';
 
   interface Props {
     title: string;
+    value?: string;
     icon?: string;
     badge?: string;
-    open?: boolean;
-    id?: string;
+    open?: boolean; // 互換性のためのフラグ
+    disabled?: boolean;
     class?: string;
     children?: Snippet;
   }
 
   let {
     title,
+    value = `item-${Math.random().toString(36).substring(2, 10)}`,
     icon,
     badge,
-    open = $bindable(false),
-    id = `accordion-${Math.random().toString(36).substr(2, 9)}`,
+    open = false,
+    disabled = false,
     class: className = '',
     children
   }: Props = $props();
-
-  function toggle() {
-    open = !open;
-  }
 </script>
 
-<div class="accordion-item {className}" class:is-open={open}>
-  <button
-    type="button"
-    class="accordion-header"
-    aria-expanded={open}
-    aria-controls={`${id}-content`}
-    id={`${id}-header`}
-    onclick={toggle}
-  >
-    <div class="accordion-title-wrapper">
-      {#if icon}
-        <span class="material-symbols-rounded accordion-icon" aria-hidden="true">{icon}</span>
-      {/if}
-      <span class="accordion-title-text">{title}</span>
-      {#if badge}
-        <span class="accordion-badge">{badge}</span>
-      {/if}
-    </div>
-    <span class="material-symbols-rounded accordion-arrow" class:rotated={open} aria-hidden="true">
-      expand_more
-    </span>
-  </button>
+<Accordion.Item {value} {disabled} class="accordion-item {className}">
+  <Accordion.Header class="accordion-header-wrapper">
+    <Accordion.Trigger class="accordion-header">
+      {#snippet children({ open })}
+        <div class="accordion-title-wrapper">
+          {#if icon}
+            <span class="material-symbols-rounded accordion-icon" aria-hidden="true">{icon}</span>
+          {/if}
+          <span class="accordion-title-text">{title}</span>
+          {#if badge}
+            <span class="accordion-badge">{badge}</span>
+          {/if}
+        </div>
+        <span class="material-symbols-rounded accordion-arrow" class:rotated={open} aria-hidden="true">
+          expand_more
+        </span>
+      {/snippet}
+    </Accordion.Trigger>
+  </Accordion.Header>
 
-  {#if open}
-    <div
-      id={`${id}-content`}
-      class="accordion-body"
-      role="region"
-      aria-labelledby={`${id}-header`}
-    >
-      <div class="accordion-content-inner">
-        {@render children?.()}
-      </div>
+  <Accordion.Content class="accordion-body">
+    <div class="accordion-content-inner">
+      {@render children?.()}
     </div>
-  {/if}
-</div>
+  </Accordion.Content>
+</Accordion.Item>
 
 <style>
-  .accordion-item {
+  :global(.accordion-item) {
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-sm);
     background: var(--bg-glass);
@@ -75,16 +64,21 @@
     margin-bottom: 0.75rem;
   }
 
-  .accordion-item:last-child {
+  :global(.accordion-item:last-child) {
     margin-bottom: 0;
   }
 
-  .accordion-item.is-open {
+  :global(.accordion-item[data-state="open"]) {
     border-color: rgba(42, 64, 50, 0.2);
     box-shadow: var(--shadow-sm);
   }
 
-  .accordion-header {
+  :global(.accordion-header-wrapper) {
+    display: flex;
+    margin: 0;
+  }
+
+  :global(.accordion-header) {
     width: 100%;
     display: flex;
     align-items: center;
@@ -103,7 +97,7 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .accordion-header:hover {
+  :global(.accordion-header:hover) {
     background: rgba(42, 64, 50, 0.03);
   }
 
@@ -150,7 +144,7 @@
     color: var(--color-primary);
   }
 
-  .accordion-body {
+  :global(.accordion-body) {
     animation: accordionSlideDown 0.22s var(--transition-normal);
   }
 

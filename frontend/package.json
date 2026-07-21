@@ -28,6 +28,7 @@
 	},
 	"dependencies": {
 		"@zerodevx/svelte-toast": "^0.9.6",
+		"bits-ui": "^2.18.1",
 		"copy-to-clipboard": "^4.0.2",
 		"dayjs": "^1.11.21"
 	}

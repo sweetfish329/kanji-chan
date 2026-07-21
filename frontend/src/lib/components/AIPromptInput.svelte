@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Tooltip } from 'bits-ui';
+
   export interface AttachedImage {
     id: string;
     data: string;      // Base64 Data URL (e.g. data:image/png;base64,...)
@@ -131,123 +133,129 @@
   }
 </script>
 
-<div 
-  class="ai-prompt-container" 
-  class:is-dragging={isDragging}
-  role="region"
-  aria-label="AIプロンプト入力および画像ドロップエリア"
-  ondragover={handleDragOver}
-  ondragleave={handleDragLeave}
-  ondrop={handleDrop}
->
-  <!-- Dropzone overlay indicator -->
-  {#if isDragging}
-    <div class="drag-overlay">
-      <span class="material-symbols-rounded drop-icon">cloud_upload</span>
-      <p>ここに画像をドロップして添付</p>
-    </div>
-  {/if}
+<Tooltip.Provider>
+  <div 
+    class="ai-prompt-container" 
+    class:is-dragging={isDragging}
+    role="region"
+    aria-label="AIプロンプト入力および画像ドロップエリア"
+    ondragover={handleDragOver}
+    ondragleave={handleDragLeave}
+    ondrop={handleDrop}
+  >
+    <!-- Dropzone overlay indicator -->
+    {#if isDragging}
+      <div class="drag-overlay">
+        <span class="material-symbols-rounded drop-icon">cloud_upload</span>
+        <p>ここに画像をドロップして添付</p>
+      </div>
+    {/if}
 
-  <!-- Templates chips -->
-  {#if templates.length > 0}
-    <div class="template-chips-row">
-      <span class="chips-label">💡 クイック例:</span>
-      <div class="chips-scroll">
-        {#each templates as tpl}
-          <button 
-            type="button" 
-            class="chip-btn"
-            disabled={disabled || isSubmitting}
-            onclick={() => applyTemplate(tpl.text)}
-          >
-            {tpl.label}
-          </button>
+    <!-- Templates chips -->
+    {#if templates.length > 0}
+      <div class="template-chips-row">
+        <span class="chips-label">💡 クイック例:</span>
+        <div class="chips-scroll">
+          {#each templates as tpl}
+            <button 
+              type="button" 
+              class="chip-btn"
+              disabled={disabled || isSubmitting}
+              onclick={() => applyTemplate(tpl.text)}
+            >
+              {tpl.label}
+            </button>
+          {/each}
+        </div>
+      </div>
+    {/if}
+
+    <!-- Image Attachments Preview Grid -->
+    {#if images.length > 0}
+      <div class="attachments-preview-grid">
+        {#each images as img (img.id)}
+          <div class="img-preview-card">
+            <img src={img.data} alt={img.name} class="preview-thumbnail" />
+            <div class="preview-meta">
+              <span class="img-name">{img.name}</span>
+              {#if img.sizeFormatted}
+                <span class="img-size">{img.sizeFormatted}</span>
+              {/if}
+            </div>
+            
+            <Tooltip.Root>
+              <Tooltip.Trigger class="btn-remove-img" aria-label={`画像 ${img.name} を削除`} onclick={() => removeImage(img.id)}>
+                <span class="material-symbols-rounded">close</span>
+              </Tooltip.Trigger>
+              <Tooltip.Content class="bits-tooltip-content" side="top">
+                添付画像を削除
+              </Tooltip.Content>
+            </Tooltip.Root>
+          </div>
         {/each}
       </div>
-    </div>
-  {/if}
+    {/if}
 
-  <!-- Image Attachments Preview Grid -->
-  {#if images.length > 0}
-    <div class="attachments-preview-grid">
-      {#each images as img (img.id)}
-        <div class="img-preview-card">
-          <img src={img.data} alt={img.name} class="preview-thumbnail" />
-          <div class="preview-meta">
-            <span class="img-name">{img.name}</span>
-            {#if img.sizeFormatted}
-              <span class="img-size">{img.sizeFormatted}</span>
-            {/if}
-          </div>
-          <button 
-            type="button" 
-            class="btn-remove-img" 
-            title="画像を削除"
-            aria-label={`画像 ${img.name} を削除`}
-            onclick={() => removeImage(img.id)}
-          >
-            <span class="material-symbols-rounded">close</span>
-          </button>
+    <!-- Prompt Textarea & Actions Bar -->
+    <div class="prompt-input-wrapper">
+      <textarea
+        bind:value={prompt}
+        {placeholder}
+        {disabled}
+        rows="3"
+        class="prompt-textarea"
+        onkeydown={handleKeyDown}
+        onpaste={handlePaste}
+      ></textarea>
+
+      <!-- Bottom Actions Toolbar -->
+      <div class="input-actions-bar">
+        <div class="left-tools">
+          <!-- Image Attach Button with Bits UI Tooltip -->
+          <Tooltip.Root>
+            <Tooltip.Trigger
+              type="button" 
+              class="tool-btn attachment-btn"
+              disabled={disabled || isSubmitting}
+              onclick={() => fileInputRef?.click()}
+            >
+              <span class="material-symbols-rounded">add_photo_alternate</span>
+              <span class="tool-label">画像添付</span>
+            </Tooltip.Trigger>
+            <Tooltip.Content class="bits-tooltip-content" side="top">
+              チラシ・カレンダー・メモ写真を添付
+            </Tooltip.Content>
+          </Tooltip.Root>
+
+          <input 
+            type="file" 
+            accept="image/*" 
+            multiple 
+            bind:this={fileInputRef} 
+            onchange={handleFileSelect} 
+            class="hidden-file-input"
+          />
+
+          <span class="hint-text">（ドラッグ＆ドロップ / クリップボード貼り付け対応）</span>
         </div>
-      {/each}
-    </div>
-  {/if}
 
-  <!-- Prompt Textarea & Actions Bar -->
-  <div class="prompt-input-wrapper">
-    <textarea
-      bind:value={prompt}
-      {placeholder}
-      {disabled}
-      rows="3"
-      class="prompt-textarea"
-      onkeydown={handleKeyDown}
-      onpaste={handlePaste}
-    ></textarea>
-
-    <!-- Bottom Actions Toolbar -->
-    <div class="input-actions-bar">
-      <div class="left-tools">
-        <!-- Image Attach Button -->
+        <!-- Submit Button -->
         <button 
           type="button" 
-          class="tool-btn attachment-btn"
-          title="画像・チラシ・カレンダー・メモを添付"
-          aria-label="画像ファイルを添付"
-          disabled={disabled || isSubmitting}
-          onclick={() => fileInputRef?.click()}
+          class="btn btn-primary ai-submit-btn" 
+          class:is-submitting={isSubmitting}
+          disabled={disabled || isSubmitting || (!prompt.trim() && images.length === 0)}
+          onclick={onSubmit}
         >
-          <span class="material-symbols-rounded">add_photo_alternate</span>
-          <span class="tool-label">画像添付</span>
+          <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isSubmitting}>
+            {isSubmitting ? 'sync' : 'auto_awesome'}
+          </span>
+          <span>{isSubmitting ? 'AI処理中...' : submitLabel}</span>
         </button>
-        <input 
-          type="file" 
-          accept="image/*" 
-          multiple 
-          bind:this={fileInputRef} 
-          onchange={handleFileSelect} 
-          class="hidden-file-input"
-        />
-
-        <span class="hint-text">（ドラッグ＆ドロップ / クリップボード貼り付け対応）</span>
       </div>
-
-      <!-- Submit Button -->
-      <button 
-        type="button" 
-        class="btn btn-primary ai-submit-btn" 
-        class:is-submitting={isSubmitting}
-        disabled={disabled || isSubmitting || (!prompt.trim() && images.length === 0)}
-        onclick={onSubmit}
-      >
-        <span class="material-symbols-rounded ai-sparkle-icon" class:spin={isSubmitting}>
-          {isSubmitting ? 'sync' : 'auto_awesome'}
-        </span>
-        <span>{isSubmitting ? 'AI処理中...' : submitLabel}</span>
-      </button>
     </div>
   </div>
-</div>
+</Tooltip.Provider>
 
 <style>
   .ai-prompt-container {
@@ -383,7 +391,7 @@
     color: var(--text-muted);
   }
 
-  .btn-remove-img {
+  :global(.btn-remove-img) {
     background: none;
     border: none;
     color: var(--text-muted);
@@ -396,7 +404,7 @@
     transition: color 0.15s ease, background 0.15s ease;
   }
 
-  .btn-remove-img:hover {
+  :global(.btn-remove-img:hover) {
     color: var(--color-ng);
     background: rgba(184, 74, 65, 0.1);
   }
@@ -447,7 +455,7 @@
     gap: 0.6rem;
   }
 
-  .tool-btn {
+  :global(.tool-btn) {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -462,7 +470,7 @@
     transition: all 0.2s ease;
   }
 
-  .tool-btn:hover:not(:disabled) {
+  :global(.tool-btn:hover:not(:disabled)) {
     background: rgba(42, 64, 50, 0.1);
     color: var(--color-accent);
   }
@@ -505,5 +513,17 @@
 
   @keyframes spin {
     to { transform: rotate(360deg); }
+  }
+
+  /* Bits UI Tooltip Styling */
+  :global(.bits-tooltip-content) {
+    background: rgba(28, 36, 30, 0.92);
+    color: #F8F6F0;
+    padding: 0.3rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    animation: fadeIn 0.15s ease;
   }
 </style>
