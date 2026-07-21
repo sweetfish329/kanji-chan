@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, Dialog, Switch, type AttachedImage } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, Dialog, Select, Switch, type AttachedImage, type SelectOptionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import { toast } from '@zerodevx/svelte-toast';
@@ -68,8 +68,33 @@
 
   // Confirmation states
   let selectedCandidateId = $state<number | null>(null);
+  let selectedCandidateIdStr = $state<string>('');
   let submitting = $state(false);
   let confirmDialogOpen = $state(false);
+
+  $effect(() => {
+    if (selectedCandidateId !== null) {
+      selectedCandidateIdStr = String(selectedCandidateId);
+    } else {
+      selectedCandidateIdStr = '';
+    }
+  });
+
+  function handleCandidateSelectChange(val: string) {
+    if (val) {
+      selectedCandidateId = Number(val);
+    } else {
+      selectedCandidateId = null;
+    }
+  }
+
+  let candidateSelectOptions = $derived.by<SelectOptionItem[]>(() => {
+    if (!event?.candidates) return [];
+    return event.candidates.map(cand => ({
+      value: String(cand.id),
+      label: `${formatDateTime(cand.event_date, cand.start_time, cand.end_time)} (〇:${candidateStats[cand.id]?.ok || 0} △:${candidateStats[cand.id]?.maybe || 0} ×:${candidateStats[cand.id]?.ng || 0})`
+    }));
+  });
 
   // Load Event Details (Admin only path, Auth checked on API side)
   async function loadEvent() {
@@ -470,15 +495,12 @@
 
             <div class="form-group select-confirm-group">
               <label for="final-select">日程を選択する</label>
-              <select id="final-select" bind:value={selectedCandidateId}>
-                <option value={null} disabled>-- 日程を選択してください --</option>
-                {#each event.candidates as cand}
-                  <option value={cand.id}>
-                    {formatDateTime(cand.event_date, cand.start_time, cand.end_time)} 
-                    (〇:{candidateStats[cand.id]?.ok || 0} △:{candidateStats[cand.id]?.maybe || 0} ×:{candidateStats[cand.id]?.ng || 0})
-                  </option>
-                {/each}
-              </select>
+              <Select
+                bind:value={selectedCandidateIdStr}
+                options={candidateSelectOptions}
+                placeholder="-- 確定する日程を選択してください --"
+                onValueChange={handleCandidateSelectChange}
+              />
             </div>
 
             <button 
