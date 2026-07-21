@@ -146,6 +146,11 @@
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
   }
 
+  .bits-native-date-input::-webkit-calendar-picker-indicator {
+    display: none;
+    -webkit-appearance: none;
+  }
+
   .bits-native-date-input:focus {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px rgba(45, 179, 103, 0.18);

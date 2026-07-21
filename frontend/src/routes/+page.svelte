@@ -218,7 +218,7 @@
 
         <button type="submit" class="btn btn-primary btn-lg w-full submit-btn" disabled={submitting}>
           <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
-          {submitting ? '作成中...' : '予定作成 ＆ 調整ページを開く'}
+          {submitting ? '作成中...' : 'イベントを作成する'}
         </button>
       </form>
     </div>
