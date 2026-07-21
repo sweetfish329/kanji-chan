@@ -356,34 +356,13 @@
     </div>
   {:else}
     <div class="admin-grid">
-      <!-- Mobile Accordion Tab Switcher (スマホ用アコーディオンメニュー) -->
+      <!-- Mobile Tab Switcher (スマホ用水平スクロールタブ) -->
       <div class="admin-mobile-menu">
-        <div class="sidebar-header">
+        <div class="sidebar-header-mobile">
           <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
           <h3>幹事ダッシュボード</h3>
         </div>
-        <Accordion>
-          <AccordionItem title="イベント一覧" icon="list_alt" badge={`${events.length}件`} open={activeTab === 'list'}>
-            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'list'}>
-              {activeTab === 'list' ? '✓ 表示中' : 'このタブを表示する'}
-            </button>
-          </AccordionItem>
-          <AccordionItem title="AIでイベント作成" icon="auto_awesome" open={activeTab === 'create-ai'}>
-            <button class="btn btn-primary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'create-ai'}>
-              {activeTab === 'create-ai' ? '✓ 表示中' : 'AI作成フォームを表示'}
-            </button>
-          </AccordionItem>
-          <AccordionItem title="手動でイベント作成" icon="add_circle" open={activeTab === 'create-manual'}>
-            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'create-manual'}>
-              {activeTab === 'create-manual' ? '✓ 表示中' : '手動作成フォームを表示'}
-            </button>
-          </AccordionItem>
-          <AccordionItem title="ユーザー設定 & APIキー" icon="settings" open={activeTab === 'settings'}>
-            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'settings'}>
-              {activeTab === 'settings' ? '✓ 表示中' : '設定パネルを表示'}
-            </button>
-          </AccordionItem>
-        </Accordion>
+        <Tabs items={adminTabs} bind:value={activeTab} />
       </div>
 
       <!-- Desktop Sidebar / Tab Selector -->
@@ -839,40 +818,37 @@ X-API-Key: kc_your_api_key_here</code></pre>
     font-size: 1.1rem;
   }
 
-  .sidebar-menu {
+  .sidebar-menu :global(.bits-tabs-list) {
     display: flex;
     flex-direction: column;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-bottom: 0;
     gap: 0.5rem;
   }
 
-  .sidebar-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
+  .sidebar-menu :global(.bits-tabs-trigger) {
+    width: 100%;
+    justify-content: flex-start;
     padding: 0.85rem 1rem;
     border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-family: var(--font-display);
+    font-size: 0.95rem;
     font-weight: 600;
-    text-align: left;
-    transition: color var(--transition-fast), background-color var(--transition-fast);
+    color: var(--text-secondary);
+    transition: background-color var(--transition-fast), color var(--transition-fast);
   }
 
-  .sidebar-btn:hover {
+  .sidebar-menu :global(.bits-tabs-trigger:hover) {
     background: var(--bg-secondary);
     color: var(--text-primary);
   }
 
-  .sidebar-btn.active {
-    background: var(--color-accent);
+  .sidebar-menu :global(.bits-tabs-trigger[data-state="active"]) {
+    background: var(--color-primary);
     color: #FAF8F5;
-  }
-
-  .sidebar-btn .material-symbols-rounded {
-    font-size: 1.25rem;
+    box-shadow: var(--shadow-sm);
   }
 
   .tab-intro {
@@ -1420,8 +1396,33 @@ X-API-Key: kc_your_api_key_here</code></pre>
     margin-bottom: 1rem;
   }
 
-  .mobile-tab-select-btn {
-    margin-top: 0.5rem;
+  .sidebar-header-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .sidebar-header-mobile h3 {
+    font-size: 1.1rem;
+  }
+
+  .admin-mobile-menu :global(.bits-tabs-list) {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding: 0.35rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-mobile-menu :global(.bits-tabs-trigger) {
+    flex-shrink: 0;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.85rem;
   }
 
   @media (max-width: 768px) {

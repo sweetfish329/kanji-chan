@@ -611,7 +611,8 @@
   }
 
   .admin-table th {
-    background: hsla(223, 40%, 10%, 0.8);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
     font-weight: 600;
   }
 
@@ -714,7 +715,7 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    background: hsla(223, 40%, 16%, 0.5);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-glass);
     padding: 1rem;
     border-radius: var(--radius-sm);
@@ -745,11 +746,12 @@
   }
 
   .sug-card {
-    background: hsla(223, 40%, 10%, 0.6);
+    background: #FAF8F5;
     padding: 1rem;
     cursor: pointer;
     transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
     border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
     text-align: left;
     width: 100%;
     font-family: inherit;
@@ -757,29 +759,29 @@
 
   .sug-card:hover {
     border-color: var(--color-primary);
-    background: hsla(223, 40%, 14%, 0.8);
+    background: #F4EFEA;
   }
 
   .sug-card.active {
     border-color: var(--color-primary);
     box-shadow: 0 0 0 3px var(--border-focus);
-    background: hsla(263, 90%, 65%, 0.05);
+    background: rgba(42, 64, 50, 0.05);
   }
 
   .sug-card.rank-1 {
-    border-color: hsla(322, 85%, 60%, 0.3);
-    background: hsla(322, 85%, 60%, 0.02);
+    border-color: rgba(212, 140, 56, 0.5);
+    background: linear-gradient(135deg, #FAF8F5 0%, rgba(212, 140, 56, 0.06) 100%);
   }
 
   .sug-card.rank-1:hover {
-    border-color: var(--color-secondary);
-    background: hsla(322, 85%, 60%, 0.06);
+    border-color: var(--color-accent);
+    background: linear-gradient(135deg, #F4EFEA 0%, rgba(212, 140, 56, 0.12) 100%);
   }
 
   .sug-card.rank-1.active {
-    border-color: var(--color-secondary);
-    box-shadow: 0 0 0 3px hsla(322, 85%, 60%, 0.3);
-    background: hsla(322, 85%, 60%, 0.08);
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px rgba(212, 140, 56, 0.3);
+    background: linear-gradient(135deg, #FAF8F5 0%, rgba(212, 140, 56, 0.14) 100%);
   }
 
   .sug-card-header {
@@ -791,14 +793,12 @@
   }
 
   .rank-badge {
-    color: var(--color-secondary);
+    color: var(--color-accent);
   }
 
   .sug-card.rank-1 .rank-badge {
-    color: var(--color-secondary);
-    background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--color-accent);
+    font-weight: 700;
   }
 
   .score-badge {
@@ -818,7 +818,8 @@
   }
 
   .overall-box {
-    background: hsla(223, 40%, 8%, 0.7);
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
     padding: 1.25rem;
     font-size: 0.85rem;
   }
