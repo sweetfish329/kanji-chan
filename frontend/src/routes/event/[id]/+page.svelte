@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem } from '$lib';
+  import { Accordion, AccordionItem, Dialog, ToggleGroup, type ToggleItemOption } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import copy from 'copy-to-clipboard';
@@ -494,35 +494,14 @@
               {#each event.candidates || [] as cand}
                 <div class="picker-row">
                   <span class="picker-date">{formatDateTime(cand.event_date, cand.start_time, cand.end_time)}</span>
-                  <div class="btn-group-status" role="group" aria-label={`${formatDateTime(cand.event_date, cand.start_time, cand.end_time)} の回答`}>
-                    <button 
-                      type="button" 
-                      class="btn btn-secondary btn-status-choice active-ok"
-                      class:active={myAnswers[cand.id] === 'ok'}
-                      aria-pressed={myAnswers[cand.id] === 'ok'}
-                      onclick={() => selectAnswer(cand.id, 'ok')}
-                    >
-                      〇 可
-                    </button>
-                    <button 
-                      type="button" 
-                      class="btn btn-secondary btn-status-choice active-maybe"
-                      class:active={myAnswers[cand.id] === 'maybe'}
-                      aria-pressed={myAnswers[cand.id] === 'maybe'}
-                      onclick={() => selectAnswer(cand.id, 'maybe')}
-                    >
-                      △ 条件付
-                    </button>
-                    <button 
-                      type="button" 
-                      class="btn btn-secondary btn-status-choice active-ng"
-                      class:active={myAnswers[cand.id] === 'ng'}
-                      aria-pressed={myAnswers[cand.id] === 'ng'}
-                      onclick={() => selectAnswer(cand.id, 'ng')}
-                    >
-                      × 不可
-                    </button>
-                  </div>
+                  <ToggleGroup
+                    bind:value={myAnswers[cand.id]}
+                    options={[
+                      { value: 'ok', label: '〇 可', icon: 'check_circle', variant: 'ok' },
+                      { value: 'maybe', label: '△ 条件付', icon: 'help', variant: 'maybe' },
+                      { value: 'ng', label: '× 不可', icon: 'cancel', variant: 'ng' }
+                    ]}
+                  />
                 </div>
               {/each}
             </div>

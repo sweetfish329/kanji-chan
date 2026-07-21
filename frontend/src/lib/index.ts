@@ -9,5 +9,6 @@ export { default as Tabs, type TabItem } from './components/ui/Tabs.svelte';
 export { default as TabsContent } from './components/ui/TabsContent.svelte';
 export { default as DropdownMenu, type MenuItem } from './components/ui/DropdownMenu.svelte';
 export { default as Switch } from './components/ui/Switch.svelte';
+export { default as ToggleGroup, type ToggleItemOption } from './components/ui/ToggleGroup.svelte';
 
 export * from './api';

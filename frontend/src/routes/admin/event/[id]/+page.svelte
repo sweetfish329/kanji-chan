@@ -69,6 +69,7 @@
   // Confirmation states
   let selectedCandidateId = $state<number | null>(null);
   let submitting = $state(false);
+  let confirmDialogOpen = $state(false);
 
   // Load Event Details (Admin only path, Auth checked on API side)
   async function loadEvent() {
@@ -483,7 +484,7 @@
             <button 
               type="button" 
               class="btn btn-primary w-full btn-lg" 
-              onclick={confirmSchedule}
+              onclick={() => confirmDialogOpen = true}
               disabled={submitting || !selectedCandidateId}
             >
               <span class="material-symbols-rounded" aria-hidden="true">celebration</span>
@@ -494,6 +495,39 @@
       </div>
     </div>
   {/if}
+
+  <!-- Bits UI Schedule Confirmation Dialog -->
+  <Dialog
+    bind:open={confirmDialogOpen}
+    title="開催日程の確定確認"
+    description="選択した開催日時で確定し、回答者に結果を公開します。確定してよろしいですか？"
+  >
+    {#if selectedCandidateId && event}
+      {@const selectedCand = event.candidates.find(c => c.id === selectedCandidateId)}
+      {#if selectedCand}
+        <div class="confirm-cand-preview font-mono">
+          📅 <strong>{formatDateTime(selectedCand.event_date, selectedCand.start_time, selectedCand.end_time)}</strong>
+        </div>
+      {/if}
+    {/if}
+
+    <div class="dialog-actions-row">
+      <button type="button" class="btn btn-secondary" onclick={() => confirmDialogOpen = false}>
+        キャンセル
+      </button>
+      <button 
+        type="button" 
+        class="btn btn-primary" 
+        disabled={submitting}
+        onclick={() => {
+          confirmSchedule();
+          confirmDialogOpen = false;
+        }}
+      >
+        確定を保存する
+      </button>
+    </div>
+  </Dialog>
 </div>
 
 <style>
