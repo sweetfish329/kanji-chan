@@ -539,6 +539,10 @@
               </button>
             {/if}
           </div>
+        </form>
+      </div>
+    {/if}
+
     <!-- Mobile Accordion Helper & Comments -->
     {#if event.responses && event.responses.length > 0}
       <div class="event-summary-accordion-section glass-panel" use:reveal>
