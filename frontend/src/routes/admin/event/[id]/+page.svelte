@@ -563,13 +563,13 @@
 
   .event-details-layout {
     display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
     gap: 2rem;
   }
 
   @media (max-width: 900px) {
     .event-details-layout {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 
@@ -577,6 +577,8 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+    min-width: 0;
+    max-width: 100%;
   }
 
   /* Info Card */

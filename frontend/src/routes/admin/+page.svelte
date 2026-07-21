@@ -790,14 +790,19 @@ X-API-Key: kc_your_api_key_here</code></pre>
   /* Admin Grid Layout */
   .admin-grid {
     display: grid;
-    grid-template-columns: 280px 1fr;
+    grid-template-columns: 280px minmax(0, 1fr);
     gap: 2rem;
   }
 
   @media (max-width: 900px) {
     .admin-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
     }
+  }
+
+  .admin-sidebar, .admin-main-content {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .admin-sidebar {

@@ -304,7 +304,7 @@
 <style>
   .hero-container {
     display: grid;
-    grid-template-columns: 1.2fr 0.8fr;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
     gap: 3rem;
     align-items: flex-start;
     padding: 3rem 0;
@@ -312,7 +312,7 @@
 
   @media (max-width: 900px) {
     .hero-container {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       gap: 2rem;
     }
   }
