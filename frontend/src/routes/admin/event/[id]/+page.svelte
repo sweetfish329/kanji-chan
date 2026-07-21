@@ -298,7 +298,13 @@
 
         <!-- Answers Status Table -->
         <div class="glass-panel table-card">
-          <h3>みんなの回答状況</h3>
+          <div class="table-card-header">
+            <h3>みんなの回答状況</h3>
+            <p class="mobile-table-hint">
+              <span class="material-symbols-rounded" aria-hidden="true">swipe</span>
+              左右にスワイプで回答を表示
+            </p>
+          </div>
           <div class="table-wrapper-admin">
             <table class="admin-table">
               <thead>
@@ -592,6 +598,34 @@
     color: var(--text-secondary);
     font-size: 1rem;
     white-space: pre-wrap;
+  }
+
+  .table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .mobile-table-hint {
+    display: none;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .mobile-table-hint .material-symbols-rounded {
+    font-size: 1rem;
+    color: var(--color-primary);
+  }
+
+  @media (max-width: 640px) {
+    .mobile-table-hint {
+      display: flex;
+    }
   }
 
   /* Table styles */

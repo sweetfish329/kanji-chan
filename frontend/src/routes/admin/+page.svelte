@@ -394,7 +394,17 @@
                 {#each events as event}
                   <div class="event-row glass-panel">
                     <div class="event-info">
-                      <h4>{event.title}</h4>
+                      <div class="event-header-row">
+                        <h4>{event.title}</h4>
+                        <button 
+                          class="btn btn-danger btn-sm-del" 
+                          title="イベント削除"
+                          aria-label={`イベント「${event.title}」を削除`}
+                          onclick={() => openDeleteDialog(event.id, event.title)}
+                        >
+                          <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                        </button>
+                      </div>
                       <p class="event-desc">{event.description || '説明はありません。'}</p>
                       <div class="event-meta">
                         <span class="status-badge" class:confirmed={event.status === 'confirmed'}>
@@ -404,16 +414,14 @@
                       </div>
                     </div>
                     <div class="event-actions">
-                      <a href={`/event/${event.id}`} class="btn btn-secondary btn-sm">回答ページ</a>
-                      <a href={`/admin/event/${event.id}`} class="btn btn-primary btn-sm">管理・AI提案</a>
-                      <button 
-                        class="btn btn-danger btn-sm-del" 
-                        title="イベント削除"
-                        aria-label={`イベント「${event.title}」を削除`}
-                        onclick={() => openDeleteDialog(event.id, event.title)}
-                      >
-                        <span class="material-symbols-rounded" aria-hidden="true">delete</span>
-                      </button>
+                      <a href={`/event/${event.id}`} class="btn btn-secondary btn-sm">
+                        <span class="material-symbols-rounded" aria-hidden="true">open_in_new</span>
+                        回答ページ
+                      </a>
+                      <a href={`/admin/event/${event.id}`} class="btn btn-primary btn-sm">
+                        <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
+                        管理・AI提案
+                      </a>
                     </div>
                   </div>
                 {/each}
@@ -869,36 +877,40 @@ X-API-Key: kc_your_api_key_here</code></pre>
     gap: 1rem;
   }
 
-  .event-row {
+  .event-header-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 1.8rem 2rem;
-    background: #FAF8F5;
-    border: 1px solid var(--border-glass);
-    border-radius: var(--radius-md);
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .event-header-row h4 {
+    margin-bottom: 0;
   }
 
   @media (max-width: 600px) {
     .event-row {
       flex-direction: column;
       align-items: stretch;
-      gap: 1.25rem;
-      padding: 1.25rem;
+      gap: 1rem;
+      padding: 1.15rem;
     }
 
     .event-actions {
       width: 100%;
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 0.5rem;
     }
 
     .event-actions .btn-sm {
-      flex: 1;
+      width: 100%;
       text-align: center;
       justify-content: center;
-      padding: 0.6rem 0.5rem;
-      font-size: 0.82rem;
+      padding: 0.65rem 0.3rem;
+      font-size: 0.8rem;
+      white-space: nowrap;
     }
   }
 
@@ -1477,21 +1489,25 @@ X-API-Key: kc_your_api_key_here</code></pre>
   }
 
   .admin-mobile-menu :global(.bits-tabs-list) {
-    display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
     padding: 0.35rem;
-    background: var(--bg-glass);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-glass);
-    border-radius: var(--radius-sm);
-    margin-bottom: 1rem;
-    -webkit-overflow-scrolling: touch;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
   }
 
   .admin-mobile-menu :global(.bits-tabs-trigger) {
-    flex-shrink: 0;
-    padding: 0.55rem 0.9rem;
-    font-size: 0.85rem;
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+    padding: 0.6rem 0.2rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    border-radius: var(--radius-sm);
   }
 
   @media (max-width: 768px) {
