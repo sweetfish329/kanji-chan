@@ -1,1 +1,3 @@
-// place files you want to import through the `$lib` alias in this folder.
+export { default as Accordion } from './components/Accordion.svelte';
+export { default as AccordionItem } from './components/AccordionItem.svelte';
+export * from './api';

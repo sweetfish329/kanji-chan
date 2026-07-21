@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { Accordion, AccordionItem } from '$lib';
   import { toast } from '@zerodevx/svelte-toast';
 
   interface User {
@@ -328,7 +329,37 @@
     </div>
   {:else}
     <div class="admin-grid">
-      <!-- Sidebar / Tab Selector -->
+      <!-- Mobile Accordion Tab Switcher (スマホ用アコーディオンメニュー) -->
+      <div class="admin-mobile-menu">
+        <div class="sidebar-header">
+          <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
+          <h3>幹事ダッシュボード</h3>
+        </div>
+        <Accordion>
+          <AccordionItem title="イベント一覧" icon="list_alt" badge={`${events.length}件`} open={activeTab === 'list'}>
+            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'list'}>
+              {activeTab === 'list' ? '✓ 表示中' : 'このタブを表示する'}
+            </button>
+          </AccordionItem>
+          <AccordionItem title="AIでイベント作成" icon="auto_awesome" open={activeTab === 'create-ai'}>
+            <button class="btn btn-primary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'create-ai'}>
+              {activeTab === 'create-ai' ? '✓ 表示中' : 'AI作成フォームを表示'}
+            </button>
+          </AccordionItem>
+          <AccordionItem title="手動でイベント作成" icon="add_circle" open={activeTab === 'create-manual'}>
+            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'create-manual'}>
+              {activeTab === 'create-manual' ? '✓ 表示中' : '手動作成フォームを表示'}
+            </button>
+          </AccordionItem>
+          <AccordionItem title="ユーザー設定 & APIキー" icon="settings" open={activeTab === 'settings'}>
+            <button class="btn btn-secondary btn-sm w-full mobile-tab-select-btn" onclick={() => activeTab = 'settings'}>
+              {activeTab === 'settings' ? '✓ 表示中' : '設定パネルを表示'}
+            </button>
+          </AccordionItem>
+        </Accordion>
+      </div>
+
+      <!-- Desktop Sidebar / Tab Selector -->
       <aside class="admin-sidebar glass-panel">
         <div class="sidebar-header">
           <span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span>
@@ -343,7 +374,7 @@
             onclick={() => activeTab = 'list'}
           >
             <span class="material-symbols-rounded" aria-hidden="true">list_alt</span>
-            イベント一覧
+            イベント一覧 ({events.length})
           </button>
           <button 
             class="sidebar-btn" 
@@ -1392,10 +1423,26 @@ X-API-Key: kc_your_api_key_here</code></pre>
     from { opacity: 0; transform: translateY(8px); }
   }
 
-  .row-num {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-    min-width: 1.2rem;
+  /* Mobile Menu Styles for Admin Dashboard */
+  .admin-mobile-menu {
+    display: none;
+    margin-bottom: 1rem;
+  }
+
+  .mobile-tab-select-btn {
+    margin-top: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .admin-mobile-menu {
+      display: block;
+    }
+    .admin-sidebar {
+      display: none;
+    }
+    .admin-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .pulse-glow {

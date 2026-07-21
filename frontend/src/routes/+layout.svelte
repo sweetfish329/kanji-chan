@@ -2,6 +2,7 @@
   import '../app.css';
   import { onMount } from 'svelte';
   import { api } from '$lib/api';
+  import { Accordion, AccordionItem } from '$lib';
   import { SvelteToast } from '@zerodevx/svelte-toast';
 
   const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '';
@@ -125,38 +126,107 @@
     </button>
   </div>
 
-  <!-- Mobile Dropdown Menu -->
+  <!-- Mobile Accordion Menu -->
   {#if mobileMenuOpen}
     <div class="mobile-menu" aria-label="モバイルナビゲーション">
       <div class="container mobile-menu-inner">
-        {#if loading}
-          <span class="loading-dots" role="status">読み込み中...</span>
-        {:else if user}
-          <div class="mobile-user-info">
-            <span class="material-symbols-rounded" aria-hidden="true">person</span>
-            <span>{user.name} さん</span>
-          </div>
-          <a href="/admin" class="mobile-nav-item" onclick={() => mobileMenuOpen = false}>
-            <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
-            ダッシュボード
-          </a>
-          <button onclick={() => { mobileMenuOpen = false; logout(); }} class="mobile-nav-item mobile-nav-logout">
-            <span class="material-symbols-rounded" aria-hidden="true">logout</span>
-            ログアウト
+        <div class="mobile-menu-header">
+          <span class="mobile-menu-title">メニュー一覧</span>
+          <button class="mobile-menu-close-btn" onclick={() => mobileMenuOpen = false} aria-label="メニューを閉じる">
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
           </button>
-        {:else}
-          <div class="mobile-ai-banner">
-            <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
-            <div>
-              <p class="mobile-ai-title">AIアシスタント機能</p>
-              <p class="mobile-ai-sub">自然文での日程自動抽出や集計結果のAI最適化が利用できます</p>
-            </div>
-          </div>
-          <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary w-full mobile-login-btn" onclick={() => mobileMenuOpen = false}>
-            <span class="material-symbols-rounded" aria-hidden="true">login</span>
-            ログインしてAI機能を使う
-          </a>
-        {/if}
+        </div>
+
+        <Accordion>
+          <!-- メニュー項目 1: 幹事アカウント / マイページ -->
+          <AccordionItem title={user ? `${user.name} 幹事アカウント` : "幹事ログイン / AI機能"} icon="person" open={true}>
+            {#if loading}
+              <span class="loading-dots" role="status">読み込み中...</span>
+            {:else if user}
+              <div class="mobile-user-card">
+                <div class="mobile-user-details">
+                  <span class="mobile-user-email">{user.email}</span>
+                </div>
+                <div class="mobile-nav-actions">
+                  <a href="/admin" class="btn btn-primary w-full" onclick={() => mobileMenuOpen = false}>
+                    <span class="material-symbols-rounded" aria-hidden="true">dashboard</span>
+                    幹事ダッシュボード
+                  </a>
+                  <button onclick={() => { mobileMenuOpen = false; logout(); }} class="btn btn-secondary w-full btn-logout">
+                    <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                    ログアウト
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <div class="mobile-ai-banner">
+                <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
+                <div>
+                  <p class="mobile-ai-title">幹事ログイン（完全無料）</p>
+                  <p class="mobile-ai-sub">ログインするとイベントの一括管理やAI候補自動提案が使えます</p>
+                </div>
+              </div>
+              <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary w-full mobile-login-btn" onclick={() => mobileMenuOpen = false}>
+                <span class="material-symbols-rounded" aria-hidden="true">login</span>
+                Google / GitHub でログイン
+              </a>
+            {/if}
+          </AccordionItem>
+
+          <!-- メニュー項目 2: イベントIDで回答ページを探す -->
+          <AccordionItem title="イベントIDでページを開く" icon="search" open={false}>
+            <form onsubmit={(e) => {
+              e.preventDefault();
+              const form = e.currentTarget as HTMLFormElement;
+              const input = form.querySelector('input') as HTMLInputElement;
+              if (input && input.value.trim()) {
+                mobileMenuOpen = false;
+                window.location.href = `/event/${input.value.trim()}`;
+              }
+            }} class="mobile-search-form">
+              <p class="mobile-search-desc">共有されたイベントIDを入力して回答・調整ページへ移動できます</p>
+              <div class="mobile-search-input-group">
+                <input 
+                  type="text" 
+                  placeholder="例: 12345678-abcd-..." 
+                  required 
+                  aria-label="イベントID"
+                />
+                <button type="submit" class="btn btn-primary btn-sm">
+                  <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+                </button>
+              </div>
+            </form>
+          </AccordionItem>
+
+          <!-- メニュー項目 3: AI機能と使い方ガイド -->
+          <AccordionItem title="幹事ちゃんのAI機能ガイド" icon="auto_awesome" open={false}>
+            <ul class="mobile-guide-list">
+              <li>
+                <span class="material-symbols-rounded" aria-hidden="true">chat</span>
+                <div>
+                  <strong>自然文からのイベント作成</strong>
+                  <p>「来週平日夜に渋谷で懇親会」のように書くだけでAIが候補日時を抽出</p>
+                </div>
+              </li>
+              <li>
+                <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
+                <div>
+                  <strong>AI最適日程おすすめ分析</strong>
+                  <p>回答結果と「〇〇さん必須」などの条件を元に最高の日程を提案</p>
+                </div>
+              </li>
+            </ul>
+          </AccordionItem>
+
+          <!-- メニュー項目 4: トップページへ -->
+          <AccordionItem title="トップページに戻る" icon="home" open={false}>
+            <a href="/" class="btn btn-secondary w-full" onclick={() => mobileMenuOpen = false}>
+              <span class="material-symbols-rounded" aria-hidden="true">home</span>
+              トップページヘ
+            </a>
+          </AccordionItem>
+        </Accordion>
       </div>
     </div>
   {/if}
@@ -313,48 +383,118 @@
     gap: 0.5rem;
   }
 
-  .mobile-user-info {
+  /* Mobile Menu Header & Accordion Styles */
+  .mobile-menu-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.8rem 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-glass);
-    margin-bottom: 0.5rem;
+    padding: 0.25rem 0 0.85rem;
+    border-bottom: 1px dashed var(--border-glass);
+    margin-bottom: 0.75rem;
   }
 
-  .mobile-user-info .material-symbols-rounded {
-    font-size: 1.2rem;
-    color: var(--color-accent);
-  }
-
-  .mobile-nav-item {
+  .mobile-menu-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-primary);
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 1rem 0;
-    text-decoration: none;
-    color: var(--text-primary);
-    font-weight: 500;
-    font-size: 1rem;
-    border: none;
+    gap: 0.4rem;
+  }
+
+  .mobile-menu-close-btn {
     background: none;
-    width: 100%;
+    border: none;
+    color: var(--text-muted);
+    padding: 0.2rem;
     cursor: pointer;
-    text-align: left;
     border-radius: var(--radius-sm);
-    min-height: var(--touch-target);
-    -webkit-tap-highlight-color: transparent;
-    transition: color var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .mobile-nav-item:active {
-    color: var(--color-accent);
+  .mobile-user-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.25rem 0;
   }
 
-  .mobile-nav-logout {
+  .mobile-user-details {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-user-email {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  .mobile-nav-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .btn-logout {
     color: var(--color-ng);
+    border-color: rgba(184, 74, 65, 0.3);
+  }
+
+  .mobile-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .mobile-search-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+  }
+
+  .mobile-search-input-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .mobile-search-input-group input {
+    font-size: 0.88rem;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .mobile-guide-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.25rem 0;
+  }
+
+  .mobile-guide-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .mobile-guide-list li .material-symbols-rounded {
+    color: var(--color-accent);
+    font-size: 1.2rem;
+    margin-top: 0.15rem;
+    flex-shrink: 0;
+  }
+
+  .mobile-guide-list strong {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .mobile-guide-list p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
   }
 
   .mobile-ai-banner {

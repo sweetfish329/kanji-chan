@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
+  import { Accordion, AccordionItem } from '$lib';
   import { toast } from '@zerodevx/svelte-toast';
   import { reveal } from '$lib/reveal';
 
@@ -229,71 +230,76 @@
   <!-- 右カラム：回答・閲覧 ＆ AIログイン -->
   <div class="hero-form-section">
     <div class="sidebar-cards">
-      <!-- 回答・閲覧 -->
-      <div class="glass-panel event-code-panel">
-        <h2 class="panel-title">イベントへの回答・閲覧</h2>
-        <p class="panel-subtitle">招待されたイベントIDを入力してください</p>
-        
-        <form onsubmit={navigateToEvent}>
-          <div class="form-group">
-            <label for="event-id">イベントID (UUID)</label>
-            <input 
-              type="text" 
-              id="event-id" 
-              placeholder="e.g. 12345678-abcd-1234-ef00-1234567890ab" 
-              bind:value={eventIdInput}
-              aria-describedby={errorMsg ? "event-id-error" : undefined}
-              aria-invalid={!!errorMsg}
-            />
-            {#if errorMsg}
-              <p class="error-text" id="event-id-error" role="alert">{errorMsg}</p>
-            {/if}
+      <Accordion>
+        <!-- 回答・閲覧 -->
+        <AccordionItem title="イベントへの回答・閲覧" icon="search" open={true}>
+          <div class="event-code-panel-inner">
+            <p class="panel-subtitle">招待されたイベントIDを入力してください</p>
+            
+            <form onsubmit={navigateToEvent}>
+              <div class="form-group">
+                <label for="event-id">イベントID (UUID)</label>
+                <input 
+                  type="text" 
+                  id="event-id" 
+                  placeholder="e.g. 12345678-abcd-1234-ef00-1234567890ab" 
+                  bind:value={eventIdInput}
+                  aria-describedby={errorMsg ? "event-id-error" : undefined}
+                  aria-invalid={!!errorMsg}
+                />
+                {#if errorMsg}
+                  <p class="error-text" id="event-id-error" role="alert">{errorMsg}</p>
+                {/if}
+              </div>
+              
+              <button type="submit" class="btn btn-secondary w-full">
+                <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+                イベントページを開く
+              </button>
+            </form>
           </div>
-          
-          <button type="submit" class="btn btn-secondary w-full">
-            <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
-            イベントページを開く
-          </button>
-        </form>
-      </div>
+        </AccordionItem>
 
-      <!-- AI機能を使うにはログイン -->
-      <div class="ai-login-card glass-panel">
-        <div class="ai-card-header">
-          <span class="material-symbols-rounded ai-icon" aria-hidden="true">auto_awesome</span>
-          <h3>AI日程決定 ＆ アシスト</h3>
-        </div>
-        <p class="ai-card-text">
-          自然文からの候補日自動抽出や、回答結果からAIが最適な日程を自動分析・決定する機能を利用する場合は、ログインしてご利用ください。
-        </p>
-        <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary w-full login-btn">
-          <span class="material-symbols-rounded" aria-hidden="true">login</span>
-          AI機能を使うにはログイン
-        </a>
-      </div>
-    </div>
-  </div>
-</div>
+        <!-- AI機能を使うにはログイン -->
+        <AccordionItem title="✨ AI日程決定 ＆ アシスト機能" icon="auto_awesome" open={true}>
+          <div class="ai-login-card-inner">
+            <p class="ai-card-text">
+              自然文からの候補日自動抽出や、回答結果からAIが最適な日程を自動分析・決定する機能を利用する場合は、ログインしてご利用ください。
+            </p>
+            <a href="{apiBaseUrl}/api/auth/login" class="btn btn-primary w-full login-btn">
+              <span class="material-symbols-rounded" aria-hidden="true">login</span>
+              AI機能を使うにはログイン
+            </a>
+          </div>
+        </AccordionItem>
 
-<div class="container features-section" use:reveal>
-  <h2 class="section-title">幹事ちゃん の心地よいサポート</h2>
-  <div class="features-grid">
-    <div class="feature-card glass-panel" use:reveal>
-      <span class="material-symbols-rounded feature-icon" aria-hidden="true">edit_note</span>
-      <h3>言葉から、候補日を紡ぐ</h3>
-      <p>「来週の平日夜、渋谷でランチかお茶。候補日を3つほど」といった自然な言葉から、AIが最適な候補日と時間帯をカレンダーから美しく提案・入力します。（ログインが必要です）</p>
-    </div>
-    
-    <div class="feature-card glass-panel" use:reveal>
-      <span class="material-symbols-rounded feature-icon" aria-hidden="true">psychology</span>
-      <h3>調和を生み出す決定サポート</h3>
-      <p>「仕事帰りに無理なく」「Aさんは必ず招待」といった、数字だけでは測れない幹事の想いと全員の都合をAIが汲み取り、一番心地よい日程を提案します。（ログインが必要です）</p>
-    </div>
-
-    <div class="feature-card glass-panel" use:reveal>
-      <span class="material-symbols-rounded feature-icon" aria-hidden="true">person_check</span>
-      <h3>おもてなしのシンプル回答</h3>
-      <p>回答するメンバーは登録やログインが不要。馴染み深い「〇・△・×」のシンプルなテーブルで、どのデバイスからも迷わずすぐに回答できます。</p>
+        <!-- 幹事ちゃんの特長・心地よいサポート -->
+        <AccordionItem title="幹事ちゃん の使いかた・特長" icon="help" open={false}>
+          <div class="mobile-features-accordion">
+            <div class="feature-sub-card">
+              <span class="material-symbols-rounded feature-icon" aria-hidden="true">edit_note</span>
+              <div>
+                <strong>言葉から、候補日を紡ぐ</strong>
+                <p>「来週の平日夜、渋谷でランチ」のように書くだけでAIが自動生成（要ログイン）</p>
+              </div>
+            </div>
+            <div class="feature-sub-card">
+              <span class="material-symbols-rounded feature-icon" aria-hidden="true">psychology</span>
+              <div>
+                <strong>調和を生み出す決定サポート</strong>
+                <p>回答結果と「Aさん必須」等の条件から一番良い候補をAIが推奨（要ログイン）</p>
+              </div>
+            </div>
+            <div class="feature-sub-card">
+              <span class="material-symbols-rounded feature-icon" aria-hidden="true">person_check</span>
+              <div>
+                <strong>おもてなしのシンプル回答</strong>
+                <p>回答者はログイン不要。スマホから〇・△・×を選ぶだけの簡単操作</p>
+              </div>
+            </div>
+          </div>
+        </AccordionItem>
+      </Accordion>
     </div>
   </div>
 </div>
@@ -314,11 +320,67 @@
     }
   }
 
+  /* Candidate Row Mobile Friendly */
   @media (max-width: 640px) {
     .hero-container {
       padding: 1.5rem 0;
       gap: 1.5rem;
     }
+
+    .candidate-row {
+      flex-wrap: wrap;
+      background: rgba(255, 255, 255, 0.4);
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glass);
+    }
+
+    .candidate-row input[type="date"] {
+      flex: 1 1 100%;
+    }
+
+    .candidate-row input[type="time"] {
+      flex: 1 1 42%;
+    }
+
+    .time-separator {
+      display: inline-block;
+      text-align: center;
+    }
+  }
+
+  /* Mobile Features Accordion */
+  .mobile-features-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 0.25rem 0;
+  }
+
+  .feature-sub-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.6rem 0;
+  }
+
+  .feature-sub-card .feature-icon {
+    font-size: 1.4rem;
+    color: var(--color-accent);
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+  }
+
+  .feature-sub-card strong {
+    display: block;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+  }
+
+  .feature-sub-card p {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
   }
 
   .creation-panel {

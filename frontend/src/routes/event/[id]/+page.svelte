@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
+  import { Accordion, AccordionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import copy from 'copy-to-clipboard';
@@ -538,7 +539,45 @@
               </button>
             {/if}
           </div>
-        </form>
+    <!-- Mobile Accordion Helper & Comments -->
+    {#if event.responses && event.responses.length > 0}
+      <div class="event-summary-accordion-section glass-panel" use:reveal>
+        <h3 class="section-subtitle">サマリー ＆ コメント一覧</h3>
+        <Accordion>
+          <AccordionItem title="💬 参加者コメント一覧" icon="chat" badge={`${event.responses.filter(r => r.comment).length}件`} open={true}>
+            <div class="comments-accordion-list">
+              {#each event.responses.filter(r => r.comment) as resp}
+                <div class="comment-item-card">
+                  <div class="comment-item-header">
+                    <strong>{resp.respondent_name}</strong>
+                    <span class="comment-time">{new Date(resp.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <p class="comment-body">{resp.comment}</p>
+                </div>
+              {:else}
+                <p class="no-comment-text">まだコメントはありません</p>
+              {/each}
+            </div>
+          </AccordionItem>
+
+          <AccordionItem title="📊 候補日スコア集計ランキング" icon="bar_chart" open={false}>
+            <div class="ranking-accordion-list">
+              {#each (event.candidates || []).slice().sort((a, b) => (candidateStats[b.id]?.score || 0) - (candidateStats[a.id]?.score || 0)) as cand, idx}
+                <div class="ranking-item-row" class:top-rank={idx === 0}>
+                  <div class="rank-badge">{idx + 1}位</div>
+                  <div class="rank-datetime">
+                    {formatDateTime(cand.event_date, cand.start_time, cand.end_time)}
+                  </div>
+                  <div class="rank-stats">
+                    <span class="stat-badge ok">〇 {candidateStats[cand.id]?.ok || 0}</span>
+                    <span class="stat-badge maybe">△ {candidateStats[cand.id]?.maybe || 0}</span>
+                    <span class="stat-badge ng">× {candidateStats[cand.id]?.ng || 0}</span>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          </AccordionItem>
+        </Accordion>
       </div>
     {/if}
   {/if}
@@ -1094,5 +1133,94 @@
   .error-icon-lg {
     font-size: 4rem;
     color: var(--color-ng);
+  }
+
+  /* Comments and Ranking Accordion Styles */
+  .comments-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+  }
+
+  .comment-item-card {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+  }
+
+  .comment-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.88rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .comment-time {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+
+  .comment-body {
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+  }
+
+  .no-comment-text {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .ranking-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding: 0.5rem 0;
+  }
+
+  .ranking-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.85rem;
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-glass);
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .ranking-item-row.top-rank {
+    border-color: rgba(212, 140, 56, 0.4);
+    background: rgba(212, 140, 56, 0.08);
+  }
+
+  .rank-badge {
+    font-weight: 700;
+    font-size: 0.82rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--radius-full);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+  }
+
+  .top-rank .rank-badge {
+    background: var(--color-accent);
+    color: #fff;
+  }
+
+  .rank-datetime {
+    font-weight: 600;
+    font-size: 0.88rem;
+    flex: 1;
+  }
+
+  .rank-stats {
+    display: flex;
+    gap: 0.4rem;
   }
 </style>

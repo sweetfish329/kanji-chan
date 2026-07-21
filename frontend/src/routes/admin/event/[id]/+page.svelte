@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
+  import { Accordion, AccordionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
   import { toast } from '@zerodevx/svelte-toast';
@@ -443,13 +444,11 @@
                 {/each}
               </div>
 
-              <div class="overall-box glass-panel animate-fade-in">
-                <div class="overall-header">
-                  <span class="material-symbols-rounded" aria-hidden="true">analytics</span>
-                  <h5>全体分析レビュー</h5>
-                </div>
-                <p>{aiSuggestions.overall_analysis}</p>
-              </div>
+              <Accordion class="ai-overall-accordion">
+                <AccordionItem title="AIによる全体分析レビュー" icon="analytics" open={true}>
+                  <p class="overall-text">{aiSuggestions.overall_analysis}</p>
+                </AccordionItem>
+              </Accordion>
             </div>
           {/if}
         </div>
