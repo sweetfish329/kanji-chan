@@ -1294,7 +1294,7 @@ X-API-Key: kc_your_api_key_here</code></pre>
     font-size: 0.83rem;
     cursor: pointer;
     font-weight: 500;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .chip-btn:hover {
@@ -1339,7 +1339,7 @@ X-API-Key: kc_your_api_key_here</code></pre>
   .shimmer-bar {
     position: absolute;
     top: 0;
-    left: -100%;
+    left: 0;
     width: 100%;
     height: 4px;
     background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
@@ -1347,8 +1347,8 @@ X-API-Key: kc_your_api_key_here</code></pre>
   }
 
   @keyframes shimmerSlide {
-    0% { left: -100%; }
-    100% { left: 100%; }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   .loading-status-content {

@@ -27,7 +27,7 @@
   {/if}
 
   <Progress.Root {value} {max} class="bits-progress-root">
-    <div class="bits-progress-fill" style="width: {percentage}%"></div>
+    <div class="bits-progress-fill" style="transform: scaleX({percentage / 100})"></div>
   </Progress.Root>
 </div>
 
@@ -62,9 +62,11 @@
   }
 
   .bits-progress-fill {
+    width: 100%;
     height: 100%;
     background: linear-gradient(90deg, var(--color-primary-light, #2db367) 0%, var(--color-primary, #1e874b) 100%);
     border-radius: 9999px;
-    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: left;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
 </style>

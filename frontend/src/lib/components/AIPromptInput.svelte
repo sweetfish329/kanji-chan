@@ -322,7 +322,7 @@
     font-size: 0.8rem;
     white-space: nowrap;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
   .chip-btn:hover:not(:disabled) {
@@ -463,7 +463,7 @@
     font-size: 0.83rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
   :global(.tool-btn:hover:not(:disabled)) {

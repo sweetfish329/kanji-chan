@@ -216,7 +216,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: all 0.15s ease;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
 
   :global(.bits-datepicker-nav-btn:hover) {

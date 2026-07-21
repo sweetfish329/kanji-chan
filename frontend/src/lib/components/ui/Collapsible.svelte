@@ -75,11 +75,19 @@
   }
 
   :global(.bits-collapsible-content) {
-    overflow: hidden;
-    transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    opacity: 0;
+  }
+
+  :global(.bits-collapsible-content[data-state="open"]) {
+    grid-template-rows: 1fr;
+    opacity: 1;
   }
 
   .bits-collapsible-inner {
+    overflow: hidden;
     padding-top: 0.5rem;
   }
 </style>

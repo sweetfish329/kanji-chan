@@ -969,7 +969,7 @@
   .shimmer-bar {
     position: absolute;
     top: 0;
-    left: -100%;
+    left: 0;
     width: 100%;
     height: 4px;
     background: linear-gradient(90deg, transparent, var(--color-accent), transparent);
@@ -977,8 +977,8 @@
   }
 
   @keyframes shimmerSlide {
-    0% { left: -100%; }
-    100% { left: 100%; }
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 
   .loading-status-content {
