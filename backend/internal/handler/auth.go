@@ -64,7 +64,7 @@ func HandleCallback(c *echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "OAuth callback failed: "+err.Error())
 	}
 
-	// DBにユーザーが存在するか確認 (o_auth_provider / oauth_provider の両方のカラム名表記に対応)
+	// DBにユーザーが存在するか確認
 	name := gothUser.Name
 	if name == "" {
 		name = gothUser.NickName
@@ -78,8 +78,7 @@ func HandleCallback(c *echo.Context) error {
 	err = database.DB.Where(&model.User{
 		OAuthProvider: gothUser.Provider,
 		OAuthID:       gothUser.UserID,
-	}).Or("o_auth_provider = ? AND o_auth_id = ?", gothUser.Provider, gothUser.UserID).
-		First(&user).Error
+	}).First(&user).Error
 
 	if err != nil {
 		// 新規作成
