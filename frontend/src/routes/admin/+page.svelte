@@ -603,137 +603,137 @@
           <div class="glass-panel settings-container">
             <h2 class="section-title">ユーザー設定 & 連携</h2>
 
-            <!-- 幹事ちゃん APIキー (MCP・外部連携) セクション -->
+            <!-- Gemini APIキー 設定セクション -->
             <div class="settings-section">
-              <div class="section-header">
-                <span class="material-symbols-rounded section-icon" aria-hidden="true">key</span>
-                <div>
-                  <h3>幹事ちゃん APIキー (MCP & REST API)</h3>
-                  <p class="section-desc">
-                    外部ツール（MCPクライアント、Pythonスクリプト、curl等）から幹事ちゃんのAPIを利用するためのAPIキーを発行します。
-                  </p>
-                </div>
-              </div>
-
-              {#if createdRawKey}
-                <div class="key-created-banner glass-panel animate-fade-in" role="alert">
-                  <div class="banner-header">
-                    <span class="material-symbols-rounded" aria-hidden="true">verified</span>
-                    <strong>APIキーが正常に発行されました</strong>
+              <Collapsible title="🧠 AI機能用 Gemini APIキー設定" open={true}>
+                <div class="section-header" style="margin-top: 0.5rem;">
+                  <div>
+                    <p class="section-desc">
+                      イベント作成のアシストや日程の自動絞り込みに使用する Gemini APIキーを登録します（暗号化して保存）。
+                    </p>
                   </div>
-                  <p class="warning-text">
-                    ⚠️ 安全のため、このキーは<strong>今しか表示されません</strong>。必ずコピーして安全な場所に保管してください。
-                  </p>
-                  <div class="key-copy-box">
-                    <code class="raw-key-code">{createdRawKey}</code>
-                    <button class="btn btn-primary btn-sm" onclick={() => copyToClipboard(createdRawKey!)}>
-                      <span class="material-symbols-rounded" aria-hidden="true">content_copy</span>
-                      コピー
-                    </button>
-                  </div>
-                  <button class="btn btn-secondary btn-sm close-key-btn" onclick={() => createdRawKey = null}>
-                    閉じる
-                  </button>
                 </div>
-              {/if}
 
-              <form onsubmit={generateUserApiKey} class="generate-key-form">
-                <div class="form-row">
-                  <div class="form-group flex-grow">
-                    <label for="new-key-name">APIキーの識別名</label>
+                <form onsubmit={updateApiKey} style="margin-top: 0.75rem;">
+                  <div class="form-group">
+                    <label for="api-key">Gemini APIキー</label>
                     <input 
-                      type="text" 
-                      id="new-key-name" 
-                      placeholder="例: My MCP Client, Claude Desktop" 
-                      bind:value={newKeyName} 
+                      type="password" 
+                      id="api-key" 
+                      placeholder="AI-key-xxxx..." 
+                      bind:value={apiKeyInput} 
                     />
+                    <p class="helper-text">Google AI Studioから取得したAPIキーを入力してください。未設定の場合はシステム共有キーが適用されます。</p>
                   </div>
-                  <button type="submit" class="btn btn-primary generate-btn" disabled={isGeneratingKey}>
-                    <span class="material-symbols-rounded" aria-hidden="true">add_key</span>
-                    {isGeneratingKey ? '発行中...' : 'APIキーを発行'}
+
+                  {#if apiKeyUpdateSuccess}
+                    <p class="success-text" role="status">{apiKeyUpdateSuccess}</p>
+                  {/if}
+
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <span class="material-symbols-rounded" aria-hidden="true">save</span>
+                    Gemini APIキーを保存
                   </button>
-                </div>
-              </form>
-
-              <div class="apikeys-list-wrapper">
-                <h4>発行済みAPIキー</h4>
-                {#if userApiKeys.length === 0}
-                  <p class="no-keys-text">まだ発行されたAPIキーはありません。</p>
-                {:else}
-                  <div class="apikeys-table">
-                    {#each userApiKeys as k}
-                      <div class="apikey-row">
-                        <div class="apikey-info">
-                          <span class="apikey-name">{k.name}</span>
-                          <span class="apikey-prefix"><code>{k.key_prefix}</code></span>
-                        </div>
-                        <div class="apikey-meta">
-                          <span class="key-date">作成日: {new Date(k.created_at).toLocaleDateString()}</span>
-                          {#if k.last_used_at}
-                            <span class="key-date">最終利用: {new Date(k.last_used_at).toLocaleDateString()}</span>
-                          {:else}
-                            <span class="key-date">未利用</span>
-                          {/if}
-                        </div>
-                        <button 
-                          class="btn btn-danger btn-sm-del" 
-                          title="APIキーを削除" 
-                          aria-label={`APIキー「${k.name}」を削除`}
-                          onclick={() => openDeleteApiKeyDialog(k.id, k.name)}
-                        >
-                          <span class="material-symbols-rounded" aria-hidden="true">delete</span>
-                        </button>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
-              </div>
-
-              <div class="api-usage-guide">
-                <h4>🔑 APIキー & MCPサーバーの使い方</h4>
-                <p><strong>MCP サーバー URL:</strong> <code>/mcp</code> (Streamable HTTP)</p>
-                <p>発行したAPIキーは、HTTPリクエストのヘッダーに設定してご利用ください：</p>
-                <pre class="code-block"><code>Authorization: Bearer kc_your_api_key_here
-# または
-X-API-Key: kc_your_api_key_here</code></pre>
-              </div>
+                </form>
+              </Collapsible>
             </div>
 
             <hr class="divider" />
 
-            <!-- Gemini APIキー 設定セクション (既存機能) -->
+            <!-- 幹事ちゃん APIキー (MCP・外部連携) セクション -->
             <div class="settings-section">
-              <div class="section-header">
-                <span class="material-symbols-rounded section-icon" aria-hidden="true">psychology</span>
-                <div>
-                  <h3>AI機能用 Gemini APIキー</h3>
-                  <p class="section-desc">
-                    イベント作成のアシストや日程の自動絞り込みに使用する Gemini APIキーを登録します（暗号化してデータベースに保存されます）。
-                  </p>
-                </div>
-              </div>
-
-              <form onsubmit={updateApiKey}>
-                <div class="form-group">
-                  <label for="api-key">Gemini APIキー</label>
-                  <input 
-                    type="password" 
-                    id="api-key" 
-                    placeholder="AI-key-xxxx..." 
-                    bind:value={apiKeyInput} 
-                  />
-                  <p class="helper-text">Google AI Studioから取得したAPIキーを入力してください。未設定の場合はシステム共有キーが適用されます。</p>
+              <Collapsible title="🔑 幹事ちゃん APIキー (MCP & 外部連携)" open={userApiKeys.length > 0}>
+                <div class="section-header" style="margin-top: 0.5rem;">
+                  <div>
+                    <p class="section-desc">
+                      外部ツール（MCPクライアント、Pythonスクリプト等）から幹事ちゃんのAPIを利用するためのAPIキーを発行します。
+                    </p>
+                  </div>
                 </div>
 
-                {#if apiKeyUpdateSuccess}
-                  <p class="success-text" role="status">{apiKeyUpdateSuccess}</p>
+                {#if createdRawKey}
+                  <div class="key-created-banner glass-panel animate-fade-in" role="alert" style="margin-top: 0.75rem;">
+                    <div class="banner-header">
+                      <span class="material-symbols-rounded" aria-hidden="true">verified</span>
+                      <strong>APIキーが正常に発行されました</strong>
+                    </div>
+                    <p class="warning-text">
+                      ⚠️ 安全のため、このキーは<strong>今しか表示されません</strong>。必ずコピーして保管してください。
+                    </p>
+                    <div class="key-copy-box">
+                      <code class="raw-key-code">{createdRawKey}</code>
+                      <button class="btn btn-primary btn-sm" onclick={() => copyToClipboard(createdRawKey!)}>
+                        <span class="material-symbols-rounded" aria-hidden="true">content_copy</span>
+                        コピー
+                      </button>
+                    </div>
+                    <button class="btn btn-secondary btn-sm close-key-btn" onclick={() => createdRawKey = null}>
+                      閉じる
+                    </button>
+                  </div>
                 {/if}
 
-                <button type="submit" class="btn btn-primary">
-                  <span class="material-symbols-rounded" aria-hidden="true">save</span>
-                  Gemini APIキーを保存
-                </button>
-              </form>
+                <form onsubmit={generateUserApiKey} class="generate-key-form" style="margin-top: 0.75rem;">
+                  <div class="form-row">
+                    <div class="form-group flex-grow">
+                      <label for="new-key-name">APIキーの識別名</label>
+                      <input 
+                        type="text" 
+                        id="new-key-name" 
+                        placeholder="例: My MCP Client, Claude Desktop" 
+                        bind:value={newKeyName} 
+                      />
+                    </div>
+                    <button type="submit" class="btn btn-primary generate-btn" disabled={isGeneratingKey}>
+                      <span class="material-symbols-rounded" aria-hidden="true">add_key</span>
+                      {isGeneratingKey ? '発行中...' : 'APIキーを発行'}
+                    </button>
+                  </div>
+                </form>
+
+                <div class="apikeys-list-wrapper">
+                  <h4>発行済みAPIキー</h4>
+                  {#if userApiKeys.length === 0}
+                    <p class="no-keys-text">まだ発行されたAPIキーはありません。</p>
+                  {:else}
+                    <div class="apikeys-table">
+                      {#each userApiKeys as k}
+                        <div class="apikey-row">
+                          <div class="apikey-info">
+                            <span class="apikey-name">{k.name}</span>
+                            <span class="apikey-prefix"><code>{k.key_prefix}</code></span>
+                          </div>
+                          <div class="apikey-meta">
+                            <span class="key-date">作成日: {new Date(k.created_at).toLocaleDateString()}</span>
+                            {#if k.last_used_at}
+                              <span class="key-date">最終利用: {new Date(k.last_used_at).toLocaleDateString()}</span>
+                            {:else}
+                              <span class="key-date">未利用</span>
+                            {/if}
+                          </div>
+                          <button 
+                            class="btn btn-danger btn-sm-del" 
+                            title="APIキーを削除" 
+                            aria-label={`APIキー「${k.name}」を削除`}
+                            onclick={() => openDeleteApiKeyDialog(k.id, k.name)}
+                          >
+                            <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+                          </button>
+                        </div>
+                      {/each}
+                    </div>
+                  {/if}
+                </div>
+
+                <div class="api-usage-guide" style="margin-top: 1.25rem;">
+                  <h4>🔑 APIキー & MCPサーバーの使い方</h4>
+                  <p><strong>MCP サーバー URL:</strong> <code>/mcp</code> (Streamable HTTP)</p>
+                  <p>発行したAPIキーは、HTTPリクエストのヘッダーに設定してご利用ください：</p>
+                  <pre class="code-block"><code>Authorization: Bearer kc_your_api_key_here
+# または
+X-API-Key: kc_your_api_key_here</code></pre>
+                </div>
+              </Collapsible>
             </div>
           </div>
         {/if}

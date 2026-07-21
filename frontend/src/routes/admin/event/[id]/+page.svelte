@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { api } from '$lib/api';
-  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Popover, Select, Switch, toast, type AttachedImage, type SelectOptionItem } from '$lib';
+  import { Accordion, AccordionItem, AIPromptInput, AlertDialog, Collapsible, Popover, Select, Switch, toast, type AttachedImage, type SelectOptionItem } from '$lib';
   import dayjs from 'dayjs';
   import 'dayjs/locale/ja';
 
@@ -371,99 +371,97 @@
       <div class="ai-helper-column">
         <!-- AI suggest request form -->
         <div class="ai-aurora-card ai-panel animate-fade-in">
-          <div class="ai-panel-header">
-            <span class="material-symbols-rounded ai-icon" aria-hidden="true">psychology</span>
-            <h3>AI日程選定アシスタント</h3>
-          </div>
-          <p class="ai-intro">回答データをもとに、AIが最適な開催日程を決定します。優先したい希望があれば入力してください。</p>
+          <Collapsible title="✨ AI日程選定アシスタント（自動最適分析）" open={event.responses.length > 0}>
+            <p class="ai-intro" style="margin-top: 0.5rem;">回答データをもとに、AIが最適な開催日程を決定します。優先したい希望があれば入力してください。</p>
 
-          {#if event.responses.length === 0}
-            <div class="ai-empty" role="status">
-              <span class="material-symbols-rounded" aria-hidden="true">info</span>
-              <p>回答者がまだ集まっていません。日程提案には回答データが必要です。</p>
-            </div>
-          {:else}
-            <AIPromptInput
-              bind:prompt={preferencesInput}
-              bind:images={aiImages}
-              placeholder="e.g. Aさんは必須で参加。なるべく金曜日を優先（条件メモ・希望カレンダー画像のドラッグ＆ドロップ添付も可能）"
-              submitLabel="AIに最適な日程を絞り込ませる"
-              isSubmitting={isAnalyzing}
-              disabled={event.status === 'confirmed'}
-              onSubmit={runAIAnalysis}
-            />
-          {/if}
+            {#if event.responses.length === 0}
+              <div class="ai-empty" role="status">
+                <span class="material-symbols-rounded" aria-hidden="true">info</span>
+                <p>回答者がまだ集まっていません。日程提案には回答データが必要です。</p>
+              </div>
+            {:else}
+              <AIPromptInput
+                bind:prompt={preferencesInput}
+                bind:images={aiImages}
+                placeholder="e.g. Aさんは必須で参加。なるべく金曜日を優先（条件メモ・希望カレンダー画像のドラッグ＆ドロップ添付も可能）"
+                submitLabel="AIに最適な日程を絞り込ませる"
+                isSubmitting={isAnalyzing}
+                disabled={event.status === 'confirmed'}
+                onSubmit={runAIAnalysis}
+              />
+            {/if}
 
-          {#if isAnalyzing}
-            <div class="ai-loading-card glass-panel animate-fade-in" role="status">
-              <div class="shimmer-bar"></div>
-              <div class="loading-status-content">
-                <div class="ai-pulse-orb"></div>
-                <div class="loading-text-wrapper">
-                  {#if aiStep === 0}
-                    <p class="step-text animate-slide-up">📊 全参加者の〇△×回答スコアを集計中...</p>
-                  {:else if aiStep === 1}
-                    <p class="step-text animate-slide-up">🔍 幹事のこだわり希望条件を検証中...</p>
-                  {:else}
-                    <p class="step-text animate-slide-up">⭐ 最適開催日時のランキングを作成中...</p>
-                  {/if}
+            {#if isAnalyzing}
+              <div class="ai-loading-card glass-panel animate-fade-in" role="status">
+                <div class="shimmer-bar"></div>
+                <div class="loading-status-content">
+                  <div class="ai-pulse-orb"></div>
+                  <div class="loading-text-wrapper">
+                    {#if aiStep === 0}
+                      <p class="step-text animate-slide-up">📊 全参加者の〇△×回答スコアを集計中...</p>
+                    {:else if aiStep === 1}
+                      <p class="step-text animate-slide-up">🔍 幹事のこだわり希望条件を検証中...</p>
+                    {:else}
+                      <p class="step-text animate-slide-up">⭐ 最適開催日時のランキングを作成中...</p>
+                    {/if}
+                  </div>
                 </div>
               </div>
-            </div>
-          {/if}
+            {/if}
 
-          <!-- AI suggestions results -->
-          {#if aiSuggestions && !isAnalyzing}
-            <div class="ai-results animate-fade-in">
-              <hr class="divider-small" />
-              <div class="results-title-row">
-                <span class="material-symbols-rounded spark-glow" aria-hidden="true">auto_awesome</span>
-                <h4>AI推薦候補ランキング</h4>
-              </div>
-              
-              <div class="suggestions-cards" role="group" aria-label="AI推薦候補リスト">
-                {#each aiSuggestions.suggestions as sug, index}
-                  {@const candidate = event.candidates.find(c => c.id === sug.candidate_id)}
-                  {#if candidate}
-                    <button 
-                      type="button"
-                      class="sug-card glass-panel animated-sug-card" 
-                      class:active={selectedCandidateId === sug.candidate_id}
-                      class:rank-1={sug.rank === 1}
-                      style="animation-delay: {index * 0.1}s"
-                      aria-pressed={selectedCandidateId === sug.candidate_id}
-                      onclick={() => {
-                        if (event?.status !== 'confirmed') {
-                          selectedCandidateId = sug.candidate_id;
-                        }
-                      }}
-                    >
-                      <div class="sug-card-header">
-                        <span class="rank-badge" class:gold={sug.rank === 1}>
-                          {sug.rank === 1 ? '👑 第 1 推薦' : `第 ${sug.rank} 候補`}
-                        </span>
-                        <span class="score-badge">スコア: {sug.score}pt</span>
-                      </div>
-                      <h5 class="font-mono">{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
-                      <p class="sug-reason">{sug.reason}</p>
-                      {#if selectedCandidateId === sug.candidate_id}
-                        <div class="selected-check-badge bounce-in">
-                          <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
-                          選択中
+            <!-- AI suggestions results -->
+            {#if aiSuggestions && !isAnalyzing}
+              <div class="ai-results animate-fade-in">
+                <hr class="divider-small" />
+                <div class="results-title-row">
+                  <span class="material-symbols-rounded spark-glow" aria-hidden="true">auto_awesome</span>
+                  <h4>AI推薦候補ランキング</h4>
+                </div>
+                
+                <div class="suggestions-cards" role="group" aria-label="AI推薦候補リスト">
+                  {#each aiSuggestions.suggestions as sug, index}
+                    {@const candidate = event.candidates.find(c => c.id === sug.candidate_id)}
+                    {#if candidate}
+                      <button 
+                        type="button"
+                        class="sug-card glass-panel animated-sug-card" 
+                        class:active={selectedCandidateId === sug.candidate_id}
+                        class:rank-1={sug.rank === 1}
+                        style="animation-delay: {index * 0.1}s"
+                        aria-pressed={selectedCandidateId === sug.candidate_id}
+                        onclick={() => {
+                          if (event?.status !== 'confirmed') {
+                            selectedCandidateId = sug.candidate_id;
+                          }
+                        }}
+                      >
+                        <div class="sug-card-header">
+                          <span class="rank-badge" class:gold={sug.rank === 1}>
+                            {sug.rank === 1 ? '👑 第 1 推薦' : `第 ${sug.rank} 候補`}
+                          </span>
+                          <span class="score-badge">スコア: {sug.score}pt</span>
                         </div>
-                      {/if}
-                    </button>
-                  {/if}
-                {/each}
-              </div>
+                        <h5 class="font-mono">{formatDateTime(candidate.event_date, candidate.start_time, candidate.end_time)}</h5>
+                        <p class="sug-reason">{sug.reason}</p>
+                        {#if selectedCandidateId === sug.candidate_id}
+                          <div class="selected-check-badge bounce-in">
+                            <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+                            選択中
+                          </div>
+                        {/if}
+                      </button>
+                    {/if}
+                  {/each}
+                </div>
 
-              <Accordion class="ai-overall-accordion">
-                <AccordionItem title="AIによる全体分析レビュー" icon="analytics" open={true}>
-                  <p class="overall-text">{aiSuggestions.overall_analysis}</p>
-                </AccordionItem>
-              </Accordion>
-            </div>
-          {/if}
+                <Accordion class="ai-overall-accordion">
+                  <AccordionItem title="AIによる全体分析レビュー" icon="analytics" open={true}>
+                    <p class="overall-text">{aiSuggestions.overall_analysis}</p>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            {/if}
+          </Collapsible>
         </div>
 
         <!-- Schedule final confirmation -->
