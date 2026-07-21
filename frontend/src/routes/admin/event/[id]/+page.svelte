@@ -597,6 +597,7 @@
     overflow-x: auto;
     border: 1px solid var(--border-glass);
     border-radius: var(--radius-sm);
+    -webkit-overflow-scrolling: touch;
   }
 
   .admin-table {
@@ -608,6 +609,13 @@
   .admin-table th, .admin-table td {
     padding: 0.85rem;
     border-bottom: 1px solid var(--border-glass);
+  }
+
+  @media (max-width: 640px) {
+    .admin-table th, .admin-table td {
+      padding: 0.6rem 0.65rem;
+      font-size: 0.8rem;
+    }
   }
 
   .admin-table th {

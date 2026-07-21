@@ -486,6 +486,22 @@
   }
 
   @media (max-width: 640px) {
+    .input-actions-bar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+
+    .left-tools {
+      width: 100%;
+      justify-content: flex-start;
+    }
+
+    .ai-submit-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
     .hint-text {
       display: none;
     }

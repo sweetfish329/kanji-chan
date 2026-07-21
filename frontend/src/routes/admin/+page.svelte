@@ -995,6 +995,41 @@ X-API-Key: kc_your_api_key_here</code></pre>
     flex: 1;
   }
 
+  @media (max-width: 640px) {
+    .candidate-row {
+      flex-wrap: wrap;
+      background: #FAF8F5;
+      padding: 0.75rem 0.85rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-glass);
+      gap: 0.5rem;
+    }
+
+    .candidate-row .row-num {
+      font-weight: 700;
+      color: var(--color-primary);
+      width: 100%;
+    }
+
+    .candidate-row :global(.bits-datepicker-container) {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+
+    .candidate-row input[type="time"] {
+      flex: 1 1 38%;
+      min-width: 0;
+    }
+
+    .time-separator {
+      align-self: center;
+    }
+
+    .btn-icon {
+      margin-left: auto;
+    }
+  }
+
   .time-separator {
     color: var(--text-secondary);
   }
