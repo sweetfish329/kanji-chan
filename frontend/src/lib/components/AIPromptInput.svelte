@@ -486,10 +486,16 @@
   }
 
   @media (max-width: 640px) {
+    .prompt-textarea {
+      min-height: 60px;
+      padding: 0.6rem 0.8rem;
+      font-size: 0.88rem;
+    }
+
     .input-actions-bar {
       flex-direction: column;
       align-items: stretch;
-      gap: 0.75rem;
+      gap: 0.5rem;
     }
 
     .left-tools {
@@ -500,6 +506,8 @@
     .ai-submit-btn {
       width: 100%;
       justify-content: center;
+      padding: 0.6rem 1rem;
+      font-size: 0.88rem;
     }
 
     .hint-text {
